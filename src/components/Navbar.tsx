@@ -26,13 +26,13 @@ export const Navbar = () => {
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   
-  const handleLogout = () => {
-    logout();
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out."
-    });
-    navigate("/");
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/");
+    } catch (error) {
+      // Error handling is done in the logout function
+    }
   };
   
   const navLinks = [
@@ -83,9 +83,14 @@ export const Navbar = () => {
                 Sign Out
               </Button>
             ) : (
-              <Button className="h-9" onClick={() => navigate("/login")}>
-                Sign In
-              </Button>
+              <div className="flex items-center space-x-3">
+                <Button variant="outline" className="h-9" onClick={() => navigate("/login")}>
+                  Sign In
+                </Button>
+                <Button className="h-9" onClick={() => navigate("/signup")}>
+                  Sign Up
+                </Button>
+              </div>
             )}
           </div>
           
@@ -130,9 +135,14 @@ export const Navbar = () => {
                   Sign Out
                 </Button>
               ) : (
-                <Button className="w-full" onClick={() => navigate("/login")}>
-                  Sign In
-                </Button>
+                <div className="space-y-2">
+                  <Button variant="outline" className="w-full" onClick={() => navigate("/login")}>
+                    Sign In
+                  </Button>
+                  <Button className="w-full" onClick={() => navigate("/signup")}>
+                    Sign Up
+                  </Button>
+                </div>
               )}
             </div>
           </div>

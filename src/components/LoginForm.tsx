@@ -10,11 +10,12 @@ import { useAuth } from "@/contexts/AuthContext";
 export const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Simple validation
@@ -27,14 +28,15 @@ export const LoginForm = () => {
       return;
     }
     
-    // In a real app, you'd validate credentials against a backend
-    // For now, we'll just log the user in
-    login();
-    toast({
-      title: "Success",
-      description: "You have been logged in successfully."
-    });
-    navigate("/dashboard");
+    setIsLoading(true);
+    
+    try {
+      await login(email, password);
+      navigate("/dashboard");
+    } catch (error) {
+      // Error is handled in the login function
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -75,8 +77,8 @@ export const LoginForm = () => {
           />
         </div>
         
-        <Button type="submit" className="w-full">
-          Login
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? "Logging in..." : "Login"}
         </Button>
       </form>
       
@@ -89,7 +91,7 @@ export const LoginForm = () => {
       <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 text-center">
         <p className="text-sm text-gray-600 dark:text-gray-300">
           Don't have an account?{" "}
-          <a href="#" className="text-primary hover:underline font-medium">
+          <a href="/signup" className="text-primary hover:underline font-medium">
             Sign up
           </a>
         </p>
