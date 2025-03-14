@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
@@ -75,11 +74,13 @@ export const Settings = () => {
           title: "Dark Mode",
           description: "Toggle light/dark theme",
           action: (
-            <Switch 
-              checked={darkMode} 
-              onCheckedChange={toggleDarkMode}
-              icon={darkMode ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-            />
+            <div className="flex items-center">
+              {darkMode ? <Moon className="h-4 w-4 mr-2" /> : <Sun className="h-4 w-4 mr-2" />}
+              <Switch 
+                checked={darkMode} 
+                onCheckedChange={toggleDarkMode}
+              />
+            </div>
           )
         }
       ]
@@ -168,7 +169,17 @@ export const Settings = () => {
                         {option.description}
                       </p>
                     </div>
-                    {option.action}
+                    {option.id === 'theme' ? (
+                      <div className="flex items-center">
+                        {darkMode ? <Moon className="h-4 w-4 mr-2" /> : <Sun className="h-4 w-4 mr-2" />}
+                        <Switch 
+                          checked={darkMode} 
+                          onCheckedChange={toggleDarkMode}
+                        />
+                      </div>
+                    ) : (
+                      option.action
+                    )}
                   </div>
                 ))}
               </div>

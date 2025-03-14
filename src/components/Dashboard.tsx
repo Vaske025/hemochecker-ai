@@ -11,9 +11,9 @@ const recentTests = [
     date: "2023-10-15",
     name: "Complete Blood Count",
     metrics: [
-      { name: "Hemoglobin", value: 14.2, unit: "g/dL", status: "normal" },
-      { name: "White Blood Cells", value: 7.5, unit: "K/uL", status: "normal" },
-      { name: "Platelets", value: 350, unit: "K/uL", status: "elevated" }
+      { name: "Hemoglobin", value: 14.2, unit: "g/dL", status: "normal" as const },
+      { name: "White Blood Cells", value: 7.5, unit: "K/uL", status: "normal" as const },
+      { name: "Platelets", value: 350, unit: "K/uL", status: "elevated" as const }
     ]
   },
   {
@@ -21,9 +21,9 @@ const recentTests = [
     date: "2023-08-22",
     name: "Lipid Panel",
     metrics: [
-      { name: "Total Cholesterol", value: 195, unit: "mg/dL", status: "normal" },
-      { name: "LDL", value: 130, unit: "mg/dL", status: "elevated" },
-      { name: "HDL", value: 55, unit: "mg/dL", status: "normal" }
+      { name: "Total Cholesterol", value: 195, unit: "mg/dL", status: "normal" as const },
+      { name: "LDL", value: 130, unit: "mg/dL", status: "elevated" as const },
+      { name: "HDL", value: 55, unit: "mg/dL", status: "normal" as const }
     ]
   }
 ];
