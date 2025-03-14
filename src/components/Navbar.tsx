@@ -1,14 +1,19 @@
 
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { MenuIcon, X } from "lucide-react";
+import { MenuIcon, X, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 export const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isAuthenticated, logout } = useAuth();
+  const { toast } = useToast();
   
   useEffect(() => {
     const handleScroll = () => {
@@ -21,9 +26,18 @@ export const Navbar = () => {
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   
+  const handleLogout = () => {
+    logout();
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out."
+    });
+    navigate("/");
+  };
+  
   const navLinks = [
     { name: "Home", path: "/" },
-    { name: "Dashboard", path: "/dashboard" },
+    ...(isAuthenticated ? [{ name: "Dashboard", path: "/dashboard" }] : []),
     { name: "Settings", path: "/settings" },
   ];
 
@@ -44,9 +58,9 @@ export const Navbar = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              HC
+              BA
             </motion.div>
-            <span>HemoChecker</span>
+            <span>BloodWork AI</span>
           </Link>
           
           {/* Desktop Nav */}
@@ -63,12 +77,21 @@ export const Navbar = () => {
           </nav>
           
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="outline" className="h-9">
-              Sign In
-            </Button>
-            <Button className="h-9">
-              Get Started
-            </Button>
+            {isAuthenticated ? (
+              <Button variant="outline" className="h-9" onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
+              </Button>
+            ) : (
+              <>
+                <Button variant="outline" className="h-9" onClick={() => navigate("/")}>
+                  Sign In
+                </Button>
+                <Button className="h-9" onClick={() => navigate("/")}>
+                  Get Started
+                </Button>
+              </>
+            )}
           </div>
           
           {/* Mobile menu button */}
@@ -106,12 +129,21 @@ export const Navbar = () => {
               </Link>
             ))}
             <div className="pt-4 pb-1 border-t border-gray-200 dark:border-gray-700 space-y-3">
-              <Button variant="outline" className="w-full">
-                Sign In
-              </Button>
-              <Button className="w-full">
-                Get Started
-              </Button>
+              {isAuthenticated ? (
+                <Button variant="outline" className="w-full" onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+                </Button>
+              ) : (
+                <>
+                  <Button variant="outline" className="w-full">
+                    Sign In
+                  </Button>
+                  <Button className="w-full">
+                    Get Started
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </motion.div>

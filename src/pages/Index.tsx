@@ -2,14 +2,36 @@
 import { Layout } from "@/components/Layout";
 import { Hero } from "@/components/Hero";
 import { Features } from "@/components/Features";
+import { LoginForm } from "@/components/LoginForm";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Shield, Activity, TrendingUp, ChevronRight } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 
 const Index = () => {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    // If user is already authenticated, redirect to dashboard
+    if (isAuthenticated) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, navigate]);
+
   return (
     <Layout>
       <Hero />
+      
+      {/* Login Section */}
+      <section className="py-16 bg-gray-50 dark:bg-gray-900/50">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <LoginForm />
+        </div>
+      </section>
+      
       <Features />
       
       {/* Premium Plan Section */}

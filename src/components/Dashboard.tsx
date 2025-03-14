@@ -3,6 +3,10 @@ import { motion } from "framer-motion";
 import { CalendarDays, Clock, ChevronRight } from "lucide-react";
 import { AnalysisCard } from "./AnalysisCard";
 import { UploadCard } from "./UploadCard";
+import { useState, useEffect } from "react";
+import { AiChat } from "./AiChat";
+import { QwenResponse, analyzeBloodTest } from "@/services/qwenApi";
+import { Button } from "@/components/ui/button";
 
 // Sample data for demonstration
 const recentTests = [
@@ -29,6 +33,15 @@ const recentTests = [
 ];
 
 export const Dashboard = () => {
+  const [selectedTest, setSelectedTest] = useState<typeof recentTests[0] | null>(null);
+  const [aiResponse, setAiResponse] = useState<QwenResponse | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
+  useEffect(() => {
+    // Reset AI response when selected test changes
+    setAiResponse(null);
+  }, [selectedTest]);
+  
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
@@ -47,6 +60,20 @@ export const Dashboard = () => {
   const item = {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+  };
+  
+  const handleAnalyzeTest = async (test: typeof recentTests[0]) => {
+    setSelectedTest(test);
+    setIsAnalyzing(true);
+    
+    try {
+      const response = await analyzeBloodTest({ metrics: test.metrics });
+      setAiResponse(response);
+    } catch (error) {
+      console.error("Failed to analyze test:", error);
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   return (
@@ -84,7 +111,9 @@ export const Dashboard = () => {
                   <motion.div
                     key={test.id}
                     variants={item}
-                    className="glass-card rounded-xl overflow-hidden transition-all duration-300 hover:shadow-md"
+                    className={`glass-card rounded-xl overflow-hidden transition-all duration-300 hover:shadow-md ${
+                      selectedTest?.id === test.id ? 'border-2 border-primary' : ''
+                    }`}
                   >
                     <div className="p-5">
                       <div className="flex justify-between mb-3">
@@ -107,13 +136,21 @@ export const Dashboard = () => {
                         ))}
                       </div>
                       
-                      <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
+                      <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center">
                         <a 
                           href="#" 
                           className="text-primary hover:text-primary/80 text-sm font-medium flex items-center"
                         >
                           View full report <ChevronRight className="ml-1 h-4 w-4" />
                         </a>
+                        
+                        <Button
+                          onClick={() => handleAnalyzeTest(test)}
+                          disabled={isAnalyzing}
+                          size="sm"
+                        >
+                          {isAnalyzing && selectedTest?.id === test.id ? 'Analyzing...' : 'Analyze with AI'}
+                        </Button>
                       </div>
                     </div>
                   </motion.div>
@@ -131,30 +168,39 @@ export const Dashboard = () => {
             )}
           </motion.div>
           
-          <motion.div
-            variants={container}
-            initial="hidden"
-            animate="show"
-            className="glass-card rounded-xl p-6"
-          >
-            <motion.h3 variants={item} className="text-xl font-semibold mb-4">
-              Your Health Trends
-            </motion.h3>
-            
-            <motion.div 
-              variants={item}
-              className="h-64 flex items-center justify-center bg-gray-50 dark:bg-gray-800/30 rounded-lg"
+          {selectedTest && aiResponse && (
+            <AiChat 
+              initialAnalysis={aiResponse.analysis}
+              recommendations={aiResponse.recommendations}
+            />
+          )}
+          
+          {!selectedTest && (
+            <motion.div
+              variants={container}
+              initial="hidden"
+              animate="show"
+              className="glass-card rounded-xl p-6"
             >
-              <div className="text-center">
-                <p className="text-gray-500 dark:text-gray-400 mb-2">
-                  Need more data to show trends
-                </p>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Upload at least 3 tests to see your health trends over time
-                </p>
-              </div>
+              <motion.h3 variants={item} className="text-xl font-semibold mb-4">
+                Your Health Trends
+              </motion.h3>
+              
+              <motion.div 
+                variants={item}
+                className="h-64 flex items-center justify-center bg-gray-50 dark:bg-gray-800/30 rounded-lg"
+              >
+                <div className="text-center">
+                  <p className="text-gray-500 dark:text-gray-400 mb-2">
+                    Need more data to show trends
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    Upload at least 3 tests to see your health trends over time
+                  </p>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
+          )}
         </div>
         
         <div className="space-y-8">
@@ -210,17 +256,3 @@ export const Dashboard = () => {
     </div>
   );
 };
-
-// Make sure to create a Button component from shadcn/ui
-function Button({ children, className, ...props }: React.ComponentProps<typeof import("@/components/ui/button").Button>) {
-  return (
-    <motion.button
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      className={`bg-primary text-white font-medium py-2 px-4 rounded-md transition-colors hover:bg-primary/90 ${className}`}
-      {...props}
-    >
-      {children}
-    </motion.button>
-  );
-}
