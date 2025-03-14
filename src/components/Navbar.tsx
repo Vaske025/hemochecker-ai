@@ -83,14 +83,9 @@ export const Navbar = () => {
                 Sign Out
               </Button>
             ) : (
-              <>
-                <Button variant="outline" className="h-9" onClick={() => navigate("/")}>
-                  Sign In
-                </Button>
-                <Button className="h-9" onClick={() => navigate("/")}>
-                  Get Started
-                </Button>
-              </>
+              <Button className="h-9" onClick={() => navigate("/login")}>
+                Sign In
+              </Button>
             )}
           </div>
           
@@ -128,21 +123,16 @@ export const Navbar = () => {
                 {link.name}
               </Link>
             ))}
-            <div className="pt-4 pb-1 border-t border-gray-200 dark:border-gray-700 space-y-3">
+            <div className="pt-4 pb-1 border-t border-gray-200 dark:border-gray-700">
               {isAuthenticated ? (
                 <Button variant="outline" className="w-full" onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign Out
                 </Button>
               ) : (
-                <>
-                  <Button variant="outline" className="w-full">
-                    Sign In
-                  </Button>
-                  <Button className="w-full">
-                    Get Started
-                  </Button>
-                </>
+                <Button className="w-full" onClick={() => navigate("/login")}>
+                  Sign In
+                </Button>
               )}
             </div>
           </div>

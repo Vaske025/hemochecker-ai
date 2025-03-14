@@ -1,8 +1,6 @@
-
 import { Layout } from "@/components/Layout";
 import { Hero } from "@/components/Hero";
 import { Features } from "@/components/Features";
-import { LoginForm } from "@/components/LoginForm";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Shield, Activity, TrendingUp, ChevronRight } from "lucide-react";
@@ -24,13 +22,6 @@ const Index = () => {
   return (
     <Layout>
       <Hero />
-      
-      {/* Login Section */}
-      <section className="py-16 bg-gray-50 dark:bg-gray-900/50">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <LoginForm />
-        </div>
-      </section>
       
       <Features />
       
@@ -164,7 +155,7 @@ const Index = () => {
             <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">
               Upload your first blood test result and get instant AI-powered insights
             </p>
-            <Button size="lg" className="h-12">
+            <Button size="lg" className="h-12" onClick={() => navigate("/login")}>
               Get Started <ChevronRight className="ml-2 h-5 w-5" />
             </Button>
           </motion.div>

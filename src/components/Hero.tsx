@@ -58,7 +58,7 @@ export const Hero = () => {
               className="relative group h-12 pl-6 pr-8"
               onMouseEnter={() => setIsHovered(true)}
               onMouseLeave={() => setIsHovered(false)}
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/login")}
             >
               <span className="mr-2">Upload Your Results</span>
               <motion.span
@@ -79,15 +79,6 @@ export const Hero = () => {
             <Button variant="outline" size="lg" className="h-12">
               Learn More
             </Button>
-          </motion.div>
-          
-          <motion.div 
-            variants={item}
-            className="pt-4 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400"
-          >
-            <span className="flex items-center before:content-[''] before:h-px before:w-5 before:bg-gray-300 before:mr-2 after:content-[''] after:h-px after:w-5 after:bg-gray-300 after:ml-2">
-              GDPR & HIPAA Compliant
-            </span>
           </motion.div>
         </motion.div>
       </div>
