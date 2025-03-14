@@ -4,12 +4,18 @@ import { motion } from "framer-motion";
 import { FileUp, X, Check, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { uploadBloodTest } from "@/services/bloodTestService";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 export const UploadCard = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { toast: uiToast } = useToast();
   
   const onDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -33,14 +39,14 @@ export const UploadCard = () => {
       if (validTypes.includes(droppedFile.type)) {
         setFile(droppedFile);
       } else {
-        toast({
+        uiToast({
           title: "Invalid file type",
           description: "Please upload a PDF, CSV, or image file",
           variant: "destructive"
         });
       }
     }
-  }, [toast]);
+  }, [uiToast]);
   
   const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -52,21 +58,31 @@ export const UploadCard = () => {
     setFile(null);
   };
   
-  const processFile = () => {
-    if (!file) return;
+  const processFile = async () => {
+    if (!file || !user) return;
     
     setUploading(true);
     
-    // Simulate file upload
-    setTimeout(() => {
-      setUploading(false);
-      toast({
-        title: "Upload successful",
-        description: "Your file has been uploaded and is being processed",
-        variant: "default"
+    try {
+      const result = await uploadBloodTest(file, user.id);
+      
+      if (result) {
+        toast.success("Upload successful", {
+          description: "Your file has been uploaded and is being processed"
+        });
+        
+        // Navigate to the report page for the newly uploaded file
+        navigate(`/report/${result.id}`);
+      }
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast.error("Upload failed", {
+        description: "There was a problem uploading your file. Please try again."
       });
+    } finally {
+      setUploading(false);
       setFile(null);
-    }, 2000);
+    }
   };
 
   return (
@@ -152,7 +168,7 @@ export const UploadCard = () => {
                     Processing...
                   </>
                 ) : (
-                  "Process File"
+                  "Upload File"
                 )}
               </Button>
               <Button 
@@ -171,6 +187,7 @@ export const UploadCard = () => {
             <AlertCircle className="h-5 w-5 text-gray-400 mt-0.5 mr-2" />
             <p className="text-xs text-gray-500 dark:text-gray-400">
               Your data is encrypted and securely processed. We never share your health information with third parties.
+              By uploading, you agree to our <a href="/terms" className="text-primary hover:underline">Terms</a> and <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>.
             </p>
           </div>
         </div>

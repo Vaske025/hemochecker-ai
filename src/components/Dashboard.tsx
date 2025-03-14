@@ -1,50 +1,45 @@
 
 import { motion } from "framer-motion";
-import { CalendarDays, Clock, ChevronRight } from "lucide-react";
-import { AnalysisCard } from "./AnalysisCard";
-import { UploadCard } from "./UploadCard";
+import { CalendarDays, Clock, ChevronRight, Plus, RefreshCw } from "lucide-react";
 import { useState, useEffect } from "react";
-import { AiChat } from "./AiChat";
-import { QwenResponse, analyzeBloodTest } from "@/services/qwenApi";
+import { UploadCard } from "./UploadCard";
 import { Button } from "@/components/ui/button";
-
-// Sample data for demonstration
-const recentTests = [
-  {
-    id: 1,
-    date: "2023-10-15",
-    name: "Complete Blood Count",
-    metrics: [
-      { name: "Hemoglobin", value: 14.2, unit: "g/dL", status: "normal" as const },
-      { name: "White Blood Cells", value: 7.5, unit: "K/uL", status: "normal" as const },
-      { name: "Platelets", value: 350, unit: "K/uL", status: "elevated" as const }
-    ]
-  },
-  {
-    id: 2,
-    date: "2023-08-22",
-    name: "Lipid Panel",
-    metrics: [
-      { name: "Total Cholesterol", value: 195, unit: "mg/dL", status: "normal" as const },
-      { name: "LDL", value: 130, unit: "mg/dL", status: "elevated" as const },
-      { name: "HDL", value: 55, unit: "mg/dL", status: "normal" as const }
-    ]
-  }
-];
+import { getUserBloodTests, deleteBloodTest } from "@/services/bloodTestService";
+import { BloodTest } from "@/types/BloodTest";
+import { format } from "date-fns";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 export const Dashboard = () => {
-  const [selectedTest, setSelectedTest] = useState<typeof recentTests[0] | null>(null);
-  const [aiResponse, setAiResponse] = useState<QwenResponse | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [tests, setTests] = useState<BloodTest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
   
   useEffect(() => {
-    // Reset AI response when selected test changes
-    setAiResponse(null);
-  }, [selectedTest]);
+    fetchUserBloodTests();
+  }, []);
+  
+  const fetchUserBloodTests = async () => {
+    setLoading(true);
+    const bloodTests = await getUserBloodTests();
+    setTests(bloodTests);
+    setLoading(false);
+  };
   
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
+    return format(new Date(dateString), 'MMM d, yyyy');
+  };
+  
+  const handleDeleteTest = async (id: string, filePath: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (window.confirm("Are you sure you want to delete this report?")) {
+      const success = await deleteBloodTest(id, filePath);
+      if (success) {
+        setTests(tests.filter(test => test.id !== id));
+      }
+    }
   };
   
   const container = {
@@ -60,20 +55,6 @@ export const Dashboard = () => {
   const item = {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0, transition: { duration: 0.3 } }
-  };
-  
-  const handleAnalyzeTest = async (test: typeof recentTests[0]) => {
-    setSelectedTest(test);
-    setIsAnalyzing(true);
-    
-    try {
-      const response = await analyzeBloodTest({ metrics: test.metrics });
-      setAiResponse(response);
-    } catch (error) {
-      console.error("Failed to analyze test:", error);
-    } finally {
-      setIsAnalyzing(false);
-    }
   };
 
   return (
@@ -99,111 +80,130 @@ export const Dashboard = () => {
             animate="show"
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold">Recent Test Results</h3>
-              <a href="#" className="text-primary hover:underline flex items-center text-sm">
-                View all <ChevronRight className="ml-1 h-4 w-4" />
-              </a>
+              <h3 className="text-xl font-semibold">Your Blood Test Reports</h3>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={fetchUserBloodTests} 
+                className="flex items-center"
+              >
+                <RefreshCw className="mr-1 h-4 w-4" />
+                Refresh
+              </Button>
             </div>
             
-            {recentTests.length > 0 ? (
+            {loading ? (
+              <div className="glass-card rounded-xl p-12 flex justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+              </div>
+            ) : tests.length > 0 ? (
               <div className="space-y-4">
-                {recentTests.map((test) => (
+                {tests.map((test) => (
                   <motion.div
                     key={test.id}
                     variants={item}
-                    className={`glass-card rounded-xl overflow-hidden transition-all duration-300 hover:shadow-md ${
-                      selectedTest?.id === test.id ? 'border-2 border-primary' : ''
-                    }`}
+                    className="glass-card rounded-xl overflow-hidden transition-all duration-300 hover:shadow-md cursor-pointer"
+                    onClick={() => navigate(`/report/${test.id}`)}
                   >
                     <div className="p-5">
                       <div className="flex justify-between mb-3">
                         <div className="flex items-center">
                           <CalendarDays className="h-4 w-4 text-gray-500 mr-1" />
                           <span className="text-sm text-gray-600 dark:text-gray-300">
-                            {formatDate(test.date)}
+                            {formatDate(test.created_at)}
                           </span>
                         </div>
-                        <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
-                          {test.name}
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          test.processed 
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                            : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                        }`}>
+                          {test.processed ? 'Processed' : 'Pending Analysis'}
                         </span>
                       </div>
                       
-                      <h4 className="text-lg font-medium mb-3">{test.name}</h4>
+                      <h4 className="text-lg font-medium mb-3 truncate" title={test.file_name}>
+                        {test.file_name}
+                      </h4>
                       
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {test.metrics.map((metric, idx) => (
-                          <AnalysisCard key={idx} metric={metric} />
-                        ))}
+                      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 mb-3">
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          {test.file_type.split('/').pop()?.toUpperCase()} · {(test.file_size / 1024 / 1024).toFixed(2)} MB
+                        </p>
                       </div>
                       
                       <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                        <a 
-                          href="#" 
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                          onClick={(e) => handleDeleteTest(test.id, test.file_path, e)}
+                        >
+                          Delete
+                        </Button>
+                        
+                        <Link 
+                          to={`/report/${test.id}`}
                           className="text-primary hover:text-primary/80 text-sm font-medium flex items-center"
                         >
-                          View full report <ChevronRight className="ml-1 h-4 w-4" />
-                        </a>
-                        
-                        <Button
-                          onClick={() => handleAnalyzeTest(test)}
-                          disabled={isAnalyzing}
-                          size="sm"
-                        >
-                          {isAnalyzing && selectedTest?.id === test.id ? 'Analyzing...' : 'Analyze with AI'}
-                        </Button>
+                          View Details <ChevronRight className="ml-1 h-4 w-4" />
+                        </Link>
                       </div>
                     </div>
                   </motion.div>
                 ))}
               </div>
             ) : (
-              <div className="glass-card rounded-xl p-6 text-center">
-                <p className="text-gray-500 dark:text-gray-400 mb-2">
+              <div className="glass-card rounded-xl p-8 text-center">
+                <p className="text-gray-500 dark:text-gray-400 mb-4">
                   No test results found
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
                   Upload your first blood test to get started
                 </p>
+                <Button onClick={() => document.getElementById('upload-section')?.scrollIntoView({ behavior: 'smooth' })}>
+                  <Plus className="h-4 w-4 mr-2" /> Upload Your First Test
+                </Button>
               </div>
             )}
           </motion.div>
           
-          {selectedTest && aiResponse && (
-            <AiChat 
-              initialAnalysis={aiResponse.analysis}
-              recommendations={aiResponse.recommendations}
-            />
-          )}
-          
-          {!selectedTest && (
-            <motion.div
-              variants={container}
-              initial="hidden"
-              animate="show"
-              className="glass-card rounded-xl p-6"
+          <motion.div
+            variants={container}
+            initial="hidden"
+            animate="show"
+            className="glass-card rounded-xl p-6"
+          >
+            <motion.h3 variants={item} className="text-xl font-semibold mb-4">
+              Your Health Journey
+            </motion.h3>
+            
+            <motion.div 
+              variants={item}
+              className="bg-gray-50 dark:bg-gray-800/30 rounded-lg p-6"
             >
-              <motion.h3 variants={item} className="text-xl font-semibold mb-4">
-                Your Health Trends
-              </motion.h3>
-              
-              <motion.div 
-                variants={item}
-                className="h-64 flex items-center justify-center bg-gray-50 dark:bg-gray-800/30 rounded-lg"
-              >
-                <div className="text-center">
-                  <p className="text-gray-500 dark:text-gray-400 mb-2">
-                    Need more data to show trends
+              <div className="text-center">
+                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                  Track your health metrics over time and get personalized insights.
+                </p>
+                
+                {tests.length === 0 && (
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" /> Upload Your First Test
+                  </Button>
+                )}
+                
+                {tests.length > 0 && tests.length < 3 && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Upload more tests to see trends and comparisons over time.
                   </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Upload at least 3 tests to see your health trends over time
-                  </p>
-                </div>
-              </motion.div>
+                )}
+              </div>
             </motion.div>
-          )}
+          </motion.div>
         </div>
         
-        <div className="space-y-8">
+        <div className="space-y-8" id="upload-section">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -225,7 +225,7 @@ export const Dashboard = () => {
                 <div className="flex-1">
                   <p className="font-medium">Free Plan</p>
                   <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                    3 of 5 uploads used this month
+                    {tests.length} of 5 uploads used this month
                   </p>
                 </div>
                 <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
@@ -234,7 +234,10 @@ export const Dashboard = () => {
               </div>
               
               <div className="mt-3 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                <div className="bg-primary h-1.5 rounded-full" style={{ width: "60%" }}></div>
+                <div 
+                  className="bg-primary h-1.5 rounded-full" 
+                  style={{ width: `${Math.min(tests.length / 5 * 100, 100)}%` }}
+                ></div>
               </div>
             </div>
             

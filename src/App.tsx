@@ -9,6 +9,9 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import DashboardPage from "./pages/DashboardPage";
 import SettingsPage from "./pages/SettingsPage";
+import TermsPage from "./pages/TermsPage";
+import PrivacyPage from "./pages/PrivacyPage";
+import ReportPage from "./pages/ReportPage";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -34,7 +37,17 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+            <Route 
+              path="/report/:id" 
+              element={
+                <ProtectedRoute>
+                  <ReportPage />
+                </ProtectedRoute>
+              } 
+            />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
