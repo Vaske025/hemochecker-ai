@@ -2,6 +2,7 @@
 import React from "react";
 import { Navbar } from "./Navbar";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -25,18 +26,18 @@ export const Layout: React.FC<LayoutProps> = ({ children, showNav = true }) => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              © {new Date().getFullYear()} HemoChecker AI. All rights reserved.
+              © {new Date().getFullYear()} Bloodwork AI. All rights reserved.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
-              <a href="#" className="text-gray-500 hover:text-primary transition-colors">
+              <Link to="/privacy" className="text-gray-500 hover:text-primary transition-colors">
                 Privacy Policy
-              </a>
-              <a href="#" className="text-gray-500 hover:text-primary transition-colors">
+              </Link>
+              <Link to="/terms" className="text-gray-500 hover:text-primary transition-colors">
                 Terms of Service
-              </a>
-              <a href="#" className="text-gray-500 hover:text-primary transition-colors">
+              </Link>
+              <Link to="/contact" className="text-gray-500 hover:text-primary transition-colors">
                 Contact
-              </a>
+              </Link>
             </div>
           </div>
         </div>

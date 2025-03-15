@@ -1,17 +1,66 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { UserCircle, CreditCard, Bell, Lock, ChevronRight, Moon, Sun } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 export const Settings = () => {
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  
+  // Check if dark mode is enabled
+  useEffect(() => {
+    // Check if user prefers dark mode
+    const isDarkMode = localStorage.getItem("darkMode") === "true" || 
+                      window.matchMedia("(prefers-color-scheme: dark)").matches;
+    setDarkMode(isDarkMode);
+    
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
   
   const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-    // In a real app, we would apply the dark mode class to the document here
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+    localStorage.setItem("darkMode", String(newDarkMode));
+    
+    if (newDarkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  };
+  
+  const handleChangePassword = () => {
+    // Navigate to change password page or open a modal
+    toast({
+      title: "Coming Soon",
+      description: "Password change functionality will be available soon.",
+    });
+  };
+  
+  const handleDataManagement = () => {
+    // Navigate to data management page
+    toast({
+      title: "Coming Soon",
+      description: "Data management functionality will be available soon.",
+    });
+  };
+  
+  const handleUpgrade = () => {
+    navigate("/pricing");
   };
   
   const settingsSections = [
@@ -29,7 +78,7 @@ export const Settings = () => {
         {
           id: "email",
           title: "Email Address",
-          description: "user@example.com",
+          description: user?.email || "Not available",
           action: <ChevronRight className="h-5 w-5 text-gray-400" />
         }
       ]
@@ -43,7 +92,7 @@ export const Settings = () => {
           id: "plan",
           title: "Current Plan",
           description: "Free Plan",
-          action: <Badge variant="outline">Upgrade</Badge>
+          action: <Badge variant="outline" className="cursor-pointer" onClick={handleUpgrade}>Upgrade</Badge>
         },
         {
           id: "billing",
@@ -94,13 +143,13 @@ export const Settings = () => {
           id: "password",
           title: "Change Password",
           description: "Update your password",
-          action: <ChevronRight className="h-5 w-5 text-gray-400" />
+          action: <Button variant="ghost" size="sm" onClick={handleChangePassword}><ChevronRight className="h-5 w-5 text-gray-400" /></Button>
         },
         {
           id: "data",
           title: "Manage Your Data",
           description: "Download or delete your data",
-          action: <ChevronRight className="h-5 w-5 text-gray-400" />
+          action: <Button variant="ghost" size="sm" onClick={handleDataManagement}><ChevronRight className="h-5 w-5 text-gray-400" /></Button>
         }
       ]
     }
@@ -169,17 +218,7 @@ export const Settings = () => {
                         {option.description}
                       </p>
                     </div>
-                    {option.id === 'theme' ? (
-                      <div className="flex items-center">
-                        {darkMode ? <Moon className="h-4 w-4 mr-2" /> : <Sun className="h-4 w-4 mr-2" />}
-                        <Switch 
-                          checked={darkMode} 
-                          onCheckedChange={toggleDarkMode}
-                        />
-                      </div>
-                    ) : (
-                      option.action
-                    )}
+                    {option.action}
                   </div>
                 ))}
               </div>

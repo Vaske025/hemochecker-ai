@@ -35,11 +35,15 @@ export const Navbar = () => {
     }
   };
   
-  const navLinks = [
-    { name: "Home", path: "/" },
-    ...(isAuthenticated ? [{ name: "Dashboard", path: "/dashboard" }] : []),
-    { name: "Settings", path: "/settings" },
-  ];
+  const navLinks = isAuthenticated 
+    ? [
+        { name: "Dashboard", path: "/dashboard" },
+        { name: "Settings", path: "/settings" }
+      ]
+    : [
+        { name: "Home", path: "/" },
+        { name: "Settings", path: "/settings" }
+      ];
 
   return (
     <header 
@@ -60,7 +64,7 @@ export const Navbar = () => {
             >
               BA
             </motion.div>
-            <span>BloodWork AI</span>
+            <span>Bloodwork AI</span>
           </Link>
           
           {/* Desktop Nav */}
