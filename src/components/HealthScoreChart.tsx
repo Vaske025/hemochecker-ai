@@ -94,7 +94,7 @@ export const HealthScoreChart = ({ data }: HealthScoreChartProps) => {
           </div>
           <div className="flex items-center">
             <span className="w-3 h-3 block rounded-full bg-[#ef4444] mr-2"></span>
-            <span className="text-xs">Poor (<60)</span>
+            <span className="text-xs">Poor (&lt;60)</span>
           </div>
         </div>
       </div>
