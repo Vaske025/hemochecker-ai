@@ -85,41 +85,129 @@ export const AiChat = ({ initialAnalysis, recommendations, metrics = [] }: AiCha
         const matchedMetric = metrics.find(m => m.name === metricName);
         
         if (matchedMetric) {
-          response = `Your ${metricName} level is ${matchedMetric.value} ${matchedMetric.unit}, which is ${matchedMetric.status}.
-
-Reference range: ${getMetricReferenceRange(metricName)}
-
-${getMetricExplanation(metricName, matchedMetric.status)}`;
+          response = generateDoctorResponse(matchedMetric, metricName);
         } else {
-          response = `${metricName} is an important health marker. 
+          response = `From a medical perspective, ${metricName} is an important biomarker that helps us assess your health status.
 
 ${getMetricExplanation(metricName, "normal")}
 
-Reference range: ${getMetricReferenceRange(metricName)}
+The standard reference range is: ${getMetricReferenceRange(metricName)}
 
-Your test results don't appear to include this specific measurement. If you're concerned about this value, I recommend discussing it with your healthcare provider.`;
+Based on the available data, I don't see this specific measurement in your current test results. If you're experiencing symptoms that might be related to this marker, I would suggest including this test in your next health check-up.`;
         }
       } else if (userQuestion.includes("all") || userQuestion.includes("overview") || userQuestion.includes("summary")) {
-        // Generate overall summary
-        response = "Here's a summary of your key blood test results:\n\n";
+        // Generate overall summary with doctor-like language
+        response = "After reviewing your blood test results, here's my medical assessment:\n\n";
         
         if (metrics.length > 0) {
-          metrics.forEach(metric => {
-            response += `• ${metric.name}: ${metric.value} ${metric.unit} (${metric.status})\n`;
-          });
+          const abnormalMetrics = metrics.filter(m => m.status !== "normal");
           
-          response += "\nAny values marked as 'elevated' or 'low' may require attention. I recommend discussing these results with your healthcare provider.";
+          if (abnormalMetrics.length > 0) {
+            response += "Key findings that require attention:\n\n";
+            abnormalMetrics.forEach(metric => {
+              response += `• ${metric.name}: ${metric.value} ${metric.unit} (${metric.status.toUpperCase()}) - ${getMetricStatus(metric.status, metric.name)}\n`;
+            });
+            response += "\n";
+          }
+          
+          const normalMetrics = metrics.filter(m => m.status === "normal");
+          if (normalMetrics.length > 0) {
+            response += "Values within normal range:\n\n";
+            normalMetrics.forEach(metric => {
+              response += `• ${metric.name}: ${metric.value} ${metric.unit} (NORMAL)\n`;
+            });
+          }
+          
+          response += "\nBased on these findings, I would recommend focusing on ";
+          
+          if (abnormalMetrics.length > 0) {
+            response += "addressing the abnormal values through appropriate lifestyle changes and possibly medication, depending on severity.";
+          } else {
+            response += "maintaining your current health practices as they seem to be working well.";
+          }
         } else {
-          response = "I don't have complete information about your blood test results. Please consult your full report or ask about specific metrics.";
+          response = "I don't have complete information about your blood test results. To provide a comprehensive assessment, I would need to see all relevant biomarkers and their values.";
         }
       } else if (userQuestion.includes("thank")) {
-        response = "You're welcome! I'm here to help with any other questions about your blood test results. Remember that this analysis is for informational purposes only and doesn't replace professional medical advice.";
+        response = "You're welcome. As a medical professional, my goal is to help you understand your test results and their implications for your health. If you have any other questions about specific markers or health concerns, please don't hesitate to ask.";
+      } else if (userQuestion.includes("diet") || userQuestion.includes("food") || userQuestion.includes("eat")) {
+        // Diet-related response
+        const elevatedCholesterol = metrics?.some(m => (m.name.includes("Cholesterol") || m.name.includes("LDL")) && m.status === "elevated");
+        const elevatedGlucose = metrics?.some(m => m.name.includes("Glucose") && m.status === "elevated");
+        
+        response = "Regarding dietary recommendations based on your blood work:\n\n";
+        
+        if (elevatedCholesterol) {
+          response += "Your lipid profile suggests a need to focus on heart-healthy eating. I recommend:\n\n";
+          response += "• Reducing saturated fats (limit red meat, full-fat dairy)\n";
+          response += "• Increasing omega-3 fatty acids (fatty fish like salmon, walnuts, flaxseeds)\n";
+          response += "• Adding more soluble fiber (oats, beans, fruits) which helps lower cholesterol\n";
+          response += "• Incorporating plant sterols/stanols found in specialized margarines and supplements\n\n";
+        }
+        
+        if (elevatedGlucose) {
+          response += "Your glucose levels indicate a need to stabilize blood sugar. Consider:\n\n";
+          response += "• Limiting refined carbohydrates and added sugars\n";
+          response += "• Choosing complex carbohydrates with lower glycemic index\n";
+          response += "• Eating balanced meals with protein, healthy fats, and fiber\n";
+          response += "• Spacing meals throughout the day to avoid blood sugar spikes\n\n";
+        }
+        
+        if (!elevatedCholesterol && !elevatedGlucose) {
+          response += "Based on your current results, I recommend a balanced Mediterranean-style diet which includes:\n\n";
+          response += "• Abundant fruits and vegetables (aim for half your plate)\n";
+          response += "• Whole grains as your main carbohydrate source\n";
+          response += "• Lean proteins like fish, poultry, beans, and nuts\n";
+          response += "• Healthy fats from olive oil, avocados, and nuts\n";
+          response += "• Limited processed foods, added sugars, and sodium\n\n";
+        }
+        
+        response += "Remember that individual nutrition needs vary, and these recommendations are based solely on your blood work results.";
+      } else if (userQuestion.includes("exercise") || userQuestion.includes("workout") || userQuestion.includes("activity")) {
+        // Exercise-related response
+        response = "Regarding physical activity recommendations based on your blood work profile:\n\n";
+        
+        const hasCardiovascularRiskFactors = metrics?.some(m => 
+          (m.name.includes("Cholesterol") && m.status === "elevated") || 
+          (m.name.includes("Glucose") && m.status === "elevated") ||
+          (m.name.includes("Triglycerides") && m.status === "elevated")
+        );
+        
+        if (hasCardiovascularRiskFactors) {
+          response += "Your results show some cardiovascular risk factors that can be improved with regular exercise:\n\n";
+          response += "• Aim for at least 150 minutes of moderate-intensity aerobic activity weekly\n";
+          response += "• Include activities like brisk walking, swimming, or cycling\n";
+          response += "• Add 2-3 sessions of strength training per week\n";
+          response += "• Consider starting with shorter sessions and gradually increasing\n\n";
+          response += "Regular exercise can significantly improve cholesterol profiles, glucose metabolism, and overall cardiovascular health.";
+        } else {
+          response += "Your current results are favorable, and regular physical activity will help maintain these healthy markers:\n\n";
+          response += "• Continue with or establish 150+ minutes of moderate exercise weekly\n";
+          response += "• Include both cardiovascular exercise and strength training\n";
+          response += "• Add flexibility and balance exercises for complete fitness\n";
+          response += "• Stay active throughout the day by taking breaks from sitting\n\n";
+          response += "Regular exercise contributes to maintaining optimal blood markers and overall health.";
+        }
       } else {
-        response = "That's a great question. Based on your results, I'd recommend discussing this with your healthcare provider for personalized advice. Is there a specific blood marker or health concern you'd like me to explain further?";
+        // Generic response with more doctor-like language
+        response = "Based on your question and the blood test results before me, I can provide some medical insight.\n\n";
+        
+        // Check for any abnormal values
+        const abnormalMetrics = metrics?.filter(m => m.status !== "normal") || [];
+        
+        if (abnormalMetrics.length > 0) {
+          response += "Your blood work shows some values that deserve attention. In particular, ";
+          response += abnormalMetrics.map(m => `your ${m.name} level of ${m.value} ${m.unit} is ${m.status}`).join(", ") + ". ";
+          response += "These findings could be relevant to your question.\n\n";
+        } else {
+          response += "Your blood work values appear to be within normal ranges, which is reassuring from a clinical perspective.\n\n";
+        }
+        
+        response += "To give you a more specific answer about your question, could you provide more details about any particular symptoms or health concerns you're experiencing? This would help me contextualize your results more precisely.";
       }
       
-      // Always add medical disclaimer
-      response += "\n\n*This analysis is for informational purposes only and does not constitute professional medical advice. Please consult a healthcare provider for an accurate diagnosis.*";
+      // Small disclaimer at the bottom
+      response += "\n\n*Note: This analysis is for informational purposes only and does not replace consultation with your healthcare provider.*";
       
       setMessages(prev => [...prev, { role: "assistant", content: response }]);
     } catch (error) {
@@ -131,6 +219,128 @@ Your test results don't appear to include this specific measurement. If you're c
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Helper function to generate doctor-like responses for specific metrics
+  const generateDoctorResponse = (metric: BloodTestMetric, metricName: string): string => {
+    const refRange = getMetricReferenceRange(metricName);
+    let response = `I've examined your ${metricName} level, which is ${metric.value} ${metric.unit}. `;
+    
+    switch (metric.status) {
+      case "elevated":
+        response += `This is above the typical reference range (${refRange}).\n\n`;
+        break;
+      case "low":
+        response += `This is below the typical reference range (${refRange}).\n\n`;
+        break;
+      case "normal":
+        response += `This falls within the normal reference range (${refRange}), which is good news.\n\n`;
+        break;
+    }
+    
+    response += `${getMetricExplanation(metricName, metric.status)}\n\n`;
+    
+    // Add clinical interpretation
+    if (metric.status !== "normal") {
+      response += `Clinical interpretation: ${getMetricStatus(metric.status, metricName)}\n\n`;
+      response += `Recommendation: ${getMetricRecommendation(metricName, metric.status)}`;
+    } else {
+      response += "Your value is within the expected range, suggesting normal physiological function for this parameter.";
+    }
+    
+    return response;
+  };
+
+  // Get status explanation from doctor's perspective
+  const getMetricStatus = (status: string, name: string): string => {
+    const statusExplanations: Record<string, Record<string, string>> = {
+      "Hemoglobin": {
+        "elevated": "Elevated hemoglobin may indicate polycythemia, dehydration, or conditions that cause increased red blood cell production.",
+        "low": "Low hemoglobin indicates anemia, which can result from iron deficiency, chronic disease, blood loss, or nutritional deficiencies."
+      },
+      "Glucose": {
+        "elevated": "Elevated glucose suggests impaired glucose metabolism, possibly prediabetes or diabetes mellitus if consistently high.",
+        "low": "Low glucose (hypoglycemia) can cause acute symptoms and may be related to medication effects, hormonal imbalances, or fasting."
+      },
+      "Cholesterol": {
+        "elevated": "Elevated total cholesterol increases cardiovascular risk and may require lifestyle modification or pharmacological intervention.",
+        "low": "Unusually low cholesterol may be associated with malnutrition, liver disease, or genetic conditions."
+      },
+      "LDL": {
+        "elevated": "Elevated LDL cholesterol is a primary risk factor for atherosclerosis and cardiovascular disease.",
+        "low": "Low LDL is generally favorable from a cardiovascular perspective."
+      },
+      "HDL": {
+        "elevated": "Elevated HDL is considered cardioprotective.",
+        "low": "Low HDL reduces the body's ability to remove excess cholesterol and is associated with increased cardiovascular risk."
+      },
+      "Triglycerides": {
+        "elevated": "Elevated triglycerides indicate dyslipidemia and may be associated with metabolic syndrome, diabetes, or genetic factors.",
+        "low": "Low triglycerides are generally not clinically significant."
+      },
+      "Creatinine": {
+        "elevated": "Elevated creatinine suggests decreased kidney function, potentially due to acute or chronic kidney disease.",
+        "low": "Low creatinine may indicate decreased muscle mass or sometimes severe liver disease."
+      },
+      "Platelets": {
+        "elevated": "Elevated platelets (thrombocytosis) may be reactive due to inflammation or infection, or primary due to bone marrow disorders.",
+        "low": "Low platelets (thrombocytopenia) increase bleeding risk and may result from immune disorders, medications, or bone marrow conditions."
+      },
+      "White Blood Cells": {
+        "elevated": "Elevated WBC count (leukocytosis) typically indicates infection, inflammation, or sometimes leukemia.",
+        "low": "Low WBC count (leukopenia) suggests impaired immune function, possibly due to bone marrow suppression, certain medications, or viral infections."
+      }
+    };
+    
+    return statusExplanations[name]?.[status] || 
+      `This ${status} ${name} value requires clinical correlation with your symptoms and medical history.`;
+  };
+
+  // Get recommendations for abnormal values
+  const getMetricRecommendation = (name: string, status: string): string => {
+    if (status === "normal") return "Continue with your current health practices.";
+    
+    const recommendations: Record<string, Record<string, string>> = {
+      "Hemoglobin": {
+        "elevated": "Consider evaluation for potential causes of elevated hemoglobin. Staying well-hydrated and avoiding smoking can help manage some cases.",
+        "low": "Iron-rich foods, vitamin C to improve iron absorption, and exploring potential causes of blood loss would be appropriate steps."
+      },
+      "Glucose": {
+        "elevated": "Focus on regular physical activity, reducing refined carbohydrates and sugars, and maintaining a healthy weight. Monitoring for diabetes may be warranted.",
+        "low": "Regular, balanced meals with complex carbohydrates and protein can help stabilize blood sugar levels."
+      },
+      "Cholesterol": {
+        "elevated": "Dietary changes focusing on reducing saturated fats, increasing fiber, regular exercise, and potentially medication based on your overall cardiovascular risk profile.",
+        "low": "Evaluation for underlying causes if accompanied by other symptoms or abnormalities."
+      },
+      "LDL": {
+        "elevated": "Dietary adjustments (less saturated fat, more soluble fiber), regular exercise, weight management if needed, and possibly medication depending on your overall risk.",
+        "low": "Generally favorable and requires no specific intervention."
+      },
+      "HDL": {
+        "elevated": "Continue with healthy lifestyle practices that maintain this favorable level.",
+        "low": "Regular aerobic exercise, stopping smoking if applicable, moderate alcohol consumption if appropriate, and dietary adjustments."
+      },
+      "Triglycerides": {
+        "elevated": "Limit simple carbohydrates and sugars, reduce alcohol consumption, increase omega-3 fatty acids, and address any metabolic conditions.",
+        "low": "No specific intervention needed."
+      },
+      "Creatinine": {
+        "elevated": "Ensure adequate hydration, evaluate medication effects, and possibly further kidney function testing.",
+        "low": "Usually no specific intervention needed unless severely abnormal or symptomatic."
+      },
+      "Platelets": {
+        "elevated": "Evaluation for underlying causes if persistently elevated; aspirin therapy may be considered in some cases.",
+        "low": "Avoiding activities with high bleeding risk, monitoring for spontaneous bleeding, and investigating underlying causes."
+      },
+      "White Blood Cells": {
+        "elevated": "Evaluation for infection or inflammation; usually resolves when underlying cause is addressed.",
+        "low": "Precautions against infection if severely low, and investigation of potential causes."
+      }
+    };
+    
+    return recommendations[name]?.[status] || 
+      "Further evaluation is recommended to determine the cause and appropriate management strategy.";
   };
 
   const getMetricExplanation = (name: string, status: string): string => {
@@ -178,7 +388,7 @@ Your test results don't appear to include this specific measurement. If you're c
     };
     
     return explanations[name]?.[status] || 
-      `${name} is an important health marker that provides insights into your overall health. Your healthcare provider can explain the significance of this value in the context of your complete health profile.`;
+      `${name} is an important biomarker that provides valuable diagnostic information about your health status. The current value should be interpreted in context with your other test results and clinical presentation.`;
   };
 
   return (
