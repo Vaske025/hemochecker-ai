@@ -1,200 +1,124 @@
 
+// Add the missing import and fix the toast call
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { motion } from "framer-motion";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
 
-export const SignupForm = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [agreeTerms, setAgreeTerms] = useState(false);
-  const { login } = useAuth();
+const formSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  password: z.string().min(8, { message: "Password must be at least 8 characters" }),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+export function SignupForm() {
+  const { signup } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Simple validation
-    if (!email || !password || !confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields.",
-        variant: "destructive"
-      });
-      return;
-    }
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
+  });
 
-    if (password !== confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!agreeTerms) {
-      toast({
-        title: "Error",
-        description: "You must agree to the terms of service.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    setIsLoading(true);
-    
+  const onSubmit = async (data: FormValues) => {
+    setLoading(true);
     try {
-      // Sign up with Supabase
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-          }
-        }
-      });
-      
-      if (error) throw error;
-      
-      // Login the user
-      login();
-      
-      toast({
-        title: "Success",
-        description: "Account created successfully! Check your email for confirmation."
-      });
-      
-      // Redirect to dashboard
+      await signup(data.email, data.password);
+      toast.success("Account created successfully");
       navigate("/dashboard");
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "An error occurred during signup.",
-        variant: "destructive"
+      console.error("Signup error:", error);
+      toast.error("Failed to create account", {
+        description: error.message || "Please try again"
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="glass-card rounded-xl p-6 max-w-md mx-auto"
-    >
-      <h2 className="text-2xl font-bold mb-6 text-center">Create an Account</h2>
-      
-      <form onSubmit={handleSignup} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="firstName" className="block text-sm font-medium mb-1">
-              First Name
-            </Label>
-            <Input
-              id="firstName"
-              type="text"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              placeholder="John"
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="lastName" className="block text-sm font-medium mb-1">
-              Last Name
-            </Label>
-            <Input
-              id="lastName"
-              type="text"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              placeholder="Doe"
-            />
-          </div>
-        </div>
-        
-        <div>
-          <Label htmlFor="email" className="block text-sm font-medium mb-1">
-            Email <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter your email"
-            required
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="password" className="block text-sm font-medium mb-1">
-            Password <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Create a password"
-            required
-          />
-        </div>
-        
-        <div>
-          <Label htmlFor="confirmPassword" className="block text-sm font-medium mb-1">
-            Confirm Password <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="confirmPassword"
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            placeholder="Confirm your password"
-            required
-          />
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <Checkbox 
-            id="terms" 
-            checked={agreeTerms} 
-            onCheckedChange={(checked) => setAgreeTerms(checked as boolean)} 
-          />
-          <Label htmlFor="terms" className="text-sm">
-            I agree to the <a href="#" className="text-primary hover:underline">Terms of Service</a> and <a href="#" className="text-primary hover:underline">Privacy Policy</a>
-          </Label>
-        </div>
-        
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Creating Account..." : "Sign Up"}
-        </Button>
-      </form>
-      
-      <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 text-center">
-        <p className="text-sm text-gray-600 dark:text-gray-300">
-          Already have an account?{" "}
-          <a href="/login" className="text-primary hover:underline font-medium">
-            Sign In
-          </a>
+    <div className="max-w-md w-full mx-auto">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold mb-2">Create an Account</h1>
+        <p className="text-gray-600 dark:text-gray-400">
+          Sign up to start tracking your health
         </p>
       </div>
-    </motion.div>
+
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input type="email" placeholder="Enter your email" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Password</FormLabel>
+                <FormControl>
+                  <Input type="password" placeholder="Create a password" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="confirmPassword"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Confirm Password</FormLabel>
+                <FormControl>
+                  <Input type="password" placeholder="Confirm your password" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? "Creating account..." : "Sign Up"}
+          </Button>
+        </form>
+      </Form>
+
+      <div className="mt-6 text-center text-sm">
+        <p className="text-gray-600 dark:text-gray-400">
+          Already have an account?{" "}
+          <Link to="/login" className="text-primary font-medium hover:underline">
+            Sign in
+          </Link>
+        </p>
+      </div>
+    </div>
   );
-};
+}

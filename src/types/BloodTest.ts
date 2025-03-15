@@ -23,3 +23,8 @@ export interface BloodTestReport {
   name: string;
   metrics: BloodTestMetric[];
 }
+
+export interface HealthScore {
+  date: string;
+  score: number;
+}

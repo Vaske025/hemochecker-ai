@@ -9,7 +9,11 @@ import { uploadBloodTest } from "@/services/bloodTestService";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-export const UploadCard = () => {
+interface UploadCardProps {
+  onUploadSuccess?: () => void;
+}
+
+export const UploadCard = ({ onUploadSuccess }: UploadCardProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -70,6 +74,11 @@ export const UploadCard = () => {
         toast.success("Upload successful", {
           description: "Your file has been uploaded and is being processed"
         });
+        
+        // Call the callback to refresh data if provided
+        if (onUploadSuccess) {
+          onUploadSuccess();
+        }
         
         // Navigate to the report page for the newly uploaded file
         navigate(`/report/${result.id}`);
