@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
-import { getBloodTestById, getBloodTestFileUrl, getBloodTestReport } from "@/services/bloodTestService";
+import { getBloodTestById, getBloodTestFileUrl, getBloodTestReport, processBloodTest } from "@/services/bloodTestService";
 import { BloodTest, BloodTestReport } from "@/types/BloodTest";
 import { motion } from "framer-motion";
 import { Loader2, Calendar, FileText, Download, ArrowLeft } from "lucide-react";
@@ -24,6 +24,7 @@ const ReportPage = () => {
   const [analysis, setAnalysis] = useState<string>("");
   const [recommendations, setRecommendations] = useState<string[]>([]);
   const [analyzeLoading, setAnalyzeLoading] = useState(false);
+  const [processingStarted, setProcessingStarted] = useState(false);
 
   useEffect(() => {
     const fetchReportData = async () => {
@@ -72,6 +73,25 @@ const ReportPage = () => {
       window.open(fileUrl, '_blank');
     } else {
       toast.error("Download link unavailable");
+    }
+  };
+
+  const handleProcessNow = async () => {
+    if (!id || processingStarted) return;
+    
+    setProcessingStarted(true);
+    toast.info("Processing your blood test...");
+    
+    try {
+      await processBloodTest(id);
+      // Wait a moment for processing to complete
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (error) {
+      console.error("Error processing test:", error);
+      toast.error("Failed to process test. Please try again.");
+      setProcessingStarted(false);
     }
   };
 
@@ -131,9 +151,26 @@ const ReportPage = () => {
         <p className="mb-2">
           Your blood test is currently being processed. This usually takes a few moments.
         </p>
-        <p>
+        <p className="mb-4">
           Results will be available soon. You'll be able to view detailed analysis, chat with our AI assistant, and track health metrics.
         </p>
+        
+        <div className="flex justify-center mt-4">
+          <Button 
+            onClick={handleProcessNow} 
+            disabled={processingStarted}
+            className="bg-amber-600 hover:bg-amber-700 text-white"
+          >
+            {processingStarted ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              "Process Now"
+            )}
+          </Button>
+        </div>
       </div>
 
       <div className="text-center mt-8">
