@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { BloodTest, BloodTestMetric, BloodTestReport, HealthScore } from "@/types/BloodTest";
 import { toast } from "sonner";
@@ -124,9 +125,11 @@ export const processBloodTest = async (id: string): Promise<boolean> => {
       
     if (error) throw error;
     
+    toast.success("Blood test processed successfully");
     return true;
   } catch (error) {
     console.error("Error processing blood test:", error);
+    toast.error("Failed to process blood test");
     return false;
   }
 };
@@ -204,6 +207,18 @@ export const getBloodTestReport = async (id: string): Promise<BloodTestReport | 
         value: 200000 + randomWithSeed(0, 150000),
         unit: "cells/μL",
         status: getStatus(200000 + randomWithSeed(0, 150000), 150000, 350000)
+      },
+      {
+        name: "White Blood Cells",
+        value: 7000 + randomWithSeed(0, 4000),
+        unit: "cells/μL",
+        status: getStatus(7000 + randomWithSeed(0, 4000), 4500, 11000)
+      },
+      {
+        name: "Red Blood Cells",
+        value: 4.5 + randomWithSeed(0, 1.5),
+        unit: "million/μL",
+        status: getStatus(4.5 + randomWithSeed(0, 1.5), 4.2, 5.8)
       }
     ];
     
