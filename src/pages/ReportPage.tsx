@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
@@ -24,6 +25,7 @@ const ReportPage = () => {
   const [recommendations, setRecommendations] = useState<string[]>([]);
   const [analyzeLoading, setAnalyzeLoading] = useState(false);
   const [processingStarted, setProcessingStarted] = useState(false);
+  const [processingChecks, setProcessingChecks] = useState(0);
 
   useEffect(() => {
     const fetchReportData = async () => {
@@ -55,13 +57,39 @@ const ReportPage = () => {
             setAnalyzeLoading(false);
           }
         }
+      } else if (testData && !testData.processed && !processingStarted) {
+        // Automatically start processing if not already processed
+        handleProcessNow();
       }
       
       setLoading(false);
     };
     
     fetchReportData();
-  }, [id]);
+  }, [id, processingStarted]);
+
+  // Auto-refresh the page if processing is in progress
+  useEffect(() => {
+    if (bloodTest && !bloodTest.processed && processingStarted && processingChecks < 3) {
+      const timer = setTimeout(() => {
+        setProcessingChecks(prev => prev + 1);
+        // Refetch the blood test to check if it's processed
+        const checkProcessing = async () => {
+          if (!id) return;
+          const updatedTest = await getBloodTestById(id);
+          if (updatedTest?.processed) {
+            window.location.reload();
+          } else if (processingChecks >= 2) {
+            // After 3 checks, force reload to see the latest status
+            window.location.reload();
+          }
+        };
+        checkProcessing();
+      }, 2000); // Check every 2 seconds
+      
+      return () => clearTimeout(timer);
+    }
+  }, [bloodTest, processingStarted, processingChecks, id]);
 
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), 'MMM d, yyyy');
@@ -83,10 +111,7 @@ const ReportPage = () => {
     
     try {
       await processBloodTest(id);
-      // Wait a moment for processing to complete
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+      // Processing will be checked by the useEffect
     } catch (error) {
       console.error("Error processing test:", error);
       toast.error("Failed to process test. Please try again.");
@@ -148,27 +173,17 @@ const ReportPage = () => {
           Processing Your Blood Test
         </h2>
         <p className="mb-2">
-          Your blood test is currently being processed. This usually takes a few moments.
+          Your blood test is currently being processed automatically. This usually takes a few moments.
         </p>
         <p className="mb-4">
           Results will be available soon. You'll be able to view detailed analysis, chat with our AI assistant, and track health metrics.
         </p>
         
         <div className="flex justify-center mt-4">
-          <Button 
-            onClick={handleProcessNow} 
-            disabled={processingStarted}
-            className="bg-amber-600 hover:bg-amber-700 text-white"
-          >
-            {processingStarted ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              "Process Now"
-            )}
-          </Button>
+          <div className="inline-flex items-center px-4 py-2 rounded-md bg-amber-100 dark:bg-amber-800 text-amber-800 dark:text-amber-200">
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            Processing in progress...
+          </div>
         </div>
       </div>
 

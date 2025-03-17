@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Send, Bot, User, AlertCircle } from "lucide-react";
+import { Send, Bot, User, AlertCircle, Heart, Pill, Activity, Coffee, Apple, Dumbbell } from "lucide-react";
 import { motion } from "framer-motion";
 import { BloodTestMetric } from "@/types/BloodTest";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -21,9 +21,9 @@ interface AiChatProps {
 
 export const AiChat = ({ initialAnalysis, recommendations, metrics = [] }: AiChatProps) => {
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: initialAnalysis },
-    { role: "assistant", content: "Here are my recommendations:\n" + recommendations.map(rec => `• ${rec}`).join("\n") },
-    { role: "assistant", content: "Feel free to ask me any questions about your results!" }
+    { role: "assistant", content: "👨‍⚕️ " + initialAnalysis },
+    { role: "assistant", content: "💡 Here are my recommendations:\n" + recommendations.map(rec => `• ${rec}`).join("\n") },
+    { role: "assistant", content: "❓ Feel free to ask me any questions about your results!" }
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -66,13 +66,13 @@ export const AiChat = ({ initialAnalysis, recommendations, metrics = [] }: AiCha
       
       // Check if asking about a specific metric
       const metricQueries = [
-        { terms: ["cholesterol", "ldl", "hdl"], metric: "Cholesterol" },
-        { terms: ["glucose", "sugar", "diabetes"], metric: "Glucose" },
-        { terms: ["platelets", "clotting"], metric: "Platelets" },
-        { terms: ["hemoglobin", "iron", "anemia"], metric: "Hemoglobin" },
-        { terms: ["triglycerides", "lipids", "fat"], metric: "Triglycerides" },
-        { terms: ["creatinine", "kidney"], metric: "Creatinine" },
-        { terms: ["white blood", "wbc", "immune"], metric: "White Blood Cells" }
+        { terms: ["cholesterol", "ldl", "hdl"], metric: "Cholesterol", emoji: "🫀" },
+        { terms: ["glucose", "sugar", "diabetes"], metric: "Glucose", emoji: "🍬" },
+        { terms: ["platelets", "clotting"], metric: "Platelets", emoji: "🩸" },
+        { terms: ["hemoglobin", "iron", "anemia"], metric: "Hemoglobin", emoji: "⚡" },
+        { terms: ["triglycerides", "lipids", "fat"], metric: "Triglycerides", emoji: "🧈" },
+        { terms: ["creatinine", "kidney"], metric: "Creatinine", emoji: "🧪" },
+        { terms: ["white blood", "wbc", "immune"], metric: "White Blood Cells", emoji: "🛡️" }
       ];
       
       // Find if question matches any metric
@@ -82,90 +82,92 @@ export const AiChat = ({ initialAnalysis, recommendations, metrics = [] }: AiCha
       
       if (matchedQuery) {
         const metricName = matchedQuery.metric;
+        const emoji = matchedQuery.emoji;
         const matchedMetric = metrics.find(m => m.name === metricName);
         
         if (matchedMetric) {
-          response = generateDoctorResponse(matchedMetric, metricName);
+          response = `${emoji} **${metricName} Analysis**\n\n${generateDoctorResponse(matchedMetric, metricName)}`;
         } else {
-          response = `From a medical perspective, ${metricName} is an important biomarker that helps us assess your health status.
+          response = `${emoji} **About ${metricName}**\n\nFrom a medical perspective, ${metricName} is an important biomarker that helps us assess your health status.
 
 ${getMetricExplanation(metricName, "normal")}
 
-The standard reference range is: ${getMetricReferenceRange(metricName)}
+📊 The standard reference range is: ${getMetricReferenceRange(metricName)}
 
 Based on the available data, I don't see this specific measurement in your current test results. If you're experiencing symptoms that might be related to this marker, I would suggest including this test in your next health check-up.`;
         }
       } else if (userQuestion.includes("all") || userQuestion.includes("overview") || userQuestion.includes("summary")) {
         // Generate overall summary with doctor-like language
-        response = "After reviewing your blood test results, here's my medical assessment:\n\n";
+        response = "🔍 **Complete Analysis of Your Blood Test Results**\n\n";
         
         if (metrics.length > 0) {
           const abnormalMetrics = metrics.filter(m => m.status !== "normal");
           
           if (abnormalMetrics.length > 0) {
-            response += "Key findings that require attention:\n\n";
+            response += "⚠️ **Key findings that require attention:**\n\n";
             abnormalMetrics.forEach(metric => {
-              response += `• ${metric.name}: ${metric.value} ${metric.unit} (${metric.status.toUpperCase()}) - ${getMetricStatus(metric.status, metric.name)}\n`;
+              let statusEmoji = metric.status === "elevated" ? "⬆️" : "⬇️";
+              response += `• ${statusEmoji} ${metric.name}: ${metric.value} ${metric.unit} (${metric.status.toUpperCase()}) - ${getMetricStatus(metric.status, metric.name)}\n`;
             });
             response += "\n";
           }
           
           const normalMetrics = metrics.filter(m => m.status === "normal");
           if (normalMetrics.length > 0) {
-            response += "Values within normal range:\n\n";
+            response += "✅ **Values within normal range:**\n\n";
             normalMetrics.forEach(metric => {
               response += `• ${metric.name}: ${metric.value} ${metric.unit} (NORMAL)\n`;
             });
           }
           
-          response += "\nBased on these findings, I would recommend focusing on ";
+          response += "\n📋 **Based on these findings, I recommend:**\n\n";
           
           if (abnormalMetrics.length > 0) {
-            response += "addressing the abnormal values through appropriate lifestyle changes and possibly medication, depending on severity.";
+            response += "Focusing on addressing the abnormal values through appropriate lifestyle changes and possibly medication, depending on severity.";
           } else {
-            response += "maintaining your current health practices as they seem to be working well.";
+            response += "Maintaining your current health practices as they seem to be working well. Your results indicate good overall health.";
           }
         } else {
           response = "I don't have complete information about your blood test results. To provide a comprehensive assessment, I would need to see all relevant biomarkers and their values.";
         }
       } else if (userQuestion.includes("thank")) {
-        response = "You're welcome. As a medical professional, my goal is to help you understand your test results and their implications for your health. If you have any other questions about specific markers or health concerns, please don't hesitate to ask.";
+        response = "😊 You're welcome. As a medical professional, my goal is to help you understand your test results and their implications for your health. If you have any other questions about specific markers or health concerns, please don't hesitate to ask.";
       } else if (userQuestion.includes("diet") || userQuestion.includes("food") || userQuestion.includes("eat")) {
         // Diet-related response
         const elevatedCholesterol = metrics?.some(m => (m.name.includes("Cholesterol") || m.name.includes("LDL")) && m.status === "elevated");
         const elevatedGlucose = metrics?.some(m => m.name.includes("Glucose") && m.status === "elevated");
         
-        response = "Regarding dietary recommendations based on your blood work:\n\n";
+        response = "🍽️ **Dietary Recommendations Based on Your Blood Work**\n\n";
         
         if (elevatedCholesterol) {
-          response += "Your lipid profile suggests a need to focus on heart-healthy eating. I recommend:\n\n";
-          response += "• Reducing saturated fats (limit red meat, full-fat dairy)\n";
-          response += "• Increasing omega-3 fatty acids (fatty fish like salmon, walnuts, flaxseeds)\n";
-          response += "• Adding more soluble fiber (oats, beans, fruits) which helps lower cholesterol\n";
-          response += "• Incorporating plant sterols/stanols found in specialized margarines and supplements\n\n";
+          response += "🫀 **For your lipid profile:**\n\n";
+          response += "• 🥩 Reduce saturated fats (limit red meat, full-fat dairy)\n";
+          response += "• 🐟 Increase omega-3 fatty acids (fatty fish like salmon, walnuts, flaxseeds)\n";
+          response += "• 🥣 Add more soluble fiber (oats, beans, fruits) which helps lower cholesterol\n";
+          response += "• 🥗 Incorporate plant sterols/stanols found in specialized margarines and supplements\n\n";
         }
         
         if (elevatedGlucose) {
-          response += "Your glucose levels indicate a need to stabilize blood sugar. Consider:\n\n";
-          response += "• Limiting refined carbohydrates and added sugars\n";
-          response += "• Choosing complex carbohydrates with lower glycemic index\n";
-          response += "• Eating balanced meals with protein, healthy fats, and fiber\n";
-          response += "• Spacing meals throughout the day to avoid blood sugar spikes\n\n";
+          response += "🍬 **For your glucose levels:**\n\n";
+          response += "• 🍭 Limit refined carbohydrates and added sugars\n";
+          response += "• 🌾 Choose complex carbohydrates with lower glycemic index\n";
+          response += "• 🥚 Eat balanced meals with protein, healthy fats, and fiber\n";
+          response += "• ⏰ Space meals throughout the day to avoid blood sugar spikes\n\n";
         }
         
         if (!elevatedCholesterol && !elevatedGlucose) {
-          response += "Based on your current results, I recommend a balanced Mediterranean-style diet which includes:\n\n";
-          response += "• Abundant fruits and vegetables (aim for half your plate)\n";
-          response += "• Whole grains as your main carbohydrate source\n";
-          response += "• Lean proteins like fish, poultry, beans, and nuts\n";
-          response += "• Healthy fats from olive oil, avocados, and nuts\n";
-          response += "• Limited processed foods, added sugars, and sodium\n\n";
+          response += "🌱 **For overall health maintenance:**\n\n";
+          response += "• 🥦 Abundant fruits and vegetables (aim for half your plate)\n";
+          response += "• 🌾 Whole grains as your main carbohydrate source\n";
+          response += "• 🐟 Lean proteins like fish, poultry, beans, and nuts\n";
+          response += "• 🫒 Healthy fats from olive oil, avocados, and nuts\n";
+          response += "• 🚫 Limited processed foods, added sugars, and sodium\n\n";
         }
         
         response += "Remember that individual nutrition needs vary, and these recommendations are based solely on your blood work results.";
       } else if (userQuestion.includes("exercise") || userQuestion.includes("workout") || userQuestion.includes("activity")) {
         // Exercise-related response
-        response = "Regarding physical activity recommendations based on your blood work profile:\n\n";
+        response = "🏃‍♂️ **Physical Activity Recommendations**\n\n";
         
         const hasCardiovascularRiskFactors = metrics?.some(m => 
           (m.name.includes("Cholesterol") && m.status === "elevated") || 
@@ -174,23 +176,23 @@ Based on the available data, I don't see this specific measurement in your curre
         );
         
         if (hasCardiovascularRiskFactors) {
-          response += "Your results show some cardiovascular risk factors that can be improved with regular exercise:\n\n";
-          response += "• Aim for at least 150 minutes of moderate-intensity aerobic activity weekly\n";
-          response += "• Include activities like brisk walking, swimming, or cycling\n";
-          response += "• Add 2-3 sessions of strength training per week\n";
-          response += "• Consider starting with shorter sessions and gradually increasing\n\n";
+          response += "🫀 **For your cardiovascular risk factors:**\n\n";
+          response += "• ⏱️ Aim for at least 150 minutes of moderate-intensity aerobic activity weekly\n";
+          response += "• 🚶‍♀️ Include activities like brisk walking, swimming, or cycling\n";
+          response += "• 💪 Add 2-3 sessions of strength training per week\n";
+          response += "• 📈 Consider starting with shorter sessions and gradually increasing\n\n";
           response += "Regular exercise can significantly improve cholesterol profiles, glucose metabolism, and overall cardiovascular health.";
         } else {
-          response += "Your current results are favorable, and regular physical activity will help maintain these healthy markers:\n\n";
-          response += "• Continue with or establish 150+ minutes of moderate exercise weekly\n";
-          response += "• Include both cardiovascular exercise and strength training\n";
-          response += "• Add flexibility and balance exercises for complete fitness\n";
-          response += "• Stay active throughout the day by taking breaks from sitting\n\n";
+          response += "✅ **For maintaining your healthy markers:**\n\n";
+          response += "• 🚶‍♂️ Continue with or establish 150+ minutes of moderate exercise weekly\n";
+          response += "• 🏊‍♀️ Include both cardiovascular exercise and strength training\n";
+          response += "• 🧘‍♀️ Add flexibility and balance exercises for complete fitness\n";
+          response += "• 🪑 Stay active throughout the day by taking breaks from sitting\n\n";
           response += "Regular exercise contributes to maintaining optimal blood markers and overall health.";
         }
       } else {
         // Generic response with more doctor-like language
-        response = "Based on your question and the blood test results before me, I can provide some medical insight.\n\n";
+        response = "👨‍⚕️ **Medical Insight Based on Your Blood Work**\n\n";
         
         // Check for any abnormal values
         const abnormalMetrics = metrics?.filter(m => m.status !== "normal") || [];
@@ -224,7 +226,8 @@ Based on the available data, I don't see this specific measurement in your curre
   // Helper function to generate doctor-like responses for specific metrics
   const generateDoctorResponse = (metric: BloodTestMetric, metricName: string): string => {
     const refRange = getMetricReferenceRange(metricName);
-    let response = `I've examined your ${metricName} level, which is ${metric.value} ${metric.unit}. `;
+    let statusEmoji = metric.status === "normal" ? "✅" : metric.status === "elevated" ? "⬆️" : "⬇️";
+    let response = `Your ${metricName} level is ${metric.value} ${metric.unit}. ${statusEmoji} `;
     
     switch (metric.status) {
       case "elevated":
@@ -242,10 +245,10 @@ Based on the available data, I don't see this specific measurement in your curre
     
     // Add clinical interpretation
     if (metric.status !== "normal") {
-      response += `Clinical interpretation: ${getMetricStatus(metric.status, metricName)}\n\n`;
-      response += `Recommendation: ${getMetricRecommendation(metricName, metric.status)}`;
+      response += `📊 **Clinical interpretation:** ${getMetricStatus(metric.status, metricName)}\n\n`;
+      response += `💡 **Recommendation:** ${getMetricRecommendation(metricName, metric.status)}`;
     } else {
-      response += "Your value is within the expected range, suggesting normal physiological function for this parameter.";
+      response += "📊 Your value is within the expected range, suggesting normal physiological function for this parameter.";
     }
     
     return response;
@@ -395,7 +398,7 @@ Based on the available data, I don't see this specific measurement in your curre
     <div className="glass-card rounded-xl p-6 mt-8">
       <h3 className="text-xl font-semibold mb-4 flex items-center">
         <Bot className="mr-2 h-5 w-5 text-primary" />
-        Chat with Bloodwork AI
+        Chat with Bloodwork AI Doctor
       </h3>
       
       <Alert variant="destructive" className="mb-4 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800">
@@ -417,7 +420,7 @@ Based on the available data, I don't see this specific measurement in your curre
           >
             <div 
               className={`
-                max-w-[80%] p-3 rounded-lg 
+                max-w-[85%] p-3 rounded-lg 
                 ${message.role === "user" 
                   ? "bg-primary text-white rounded-tr-none" 
                   : "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-tl-none"}
@@ -427,7 +430,7 @@ Based on the available data, I don't see this specific measurement in your curre
                 {message.role === "assistant" && (
                   <Bot className="h-5 w-5 mt-1 mr-2 flex-shrink-0" />
                 )}
-                <div className="whitespace-pre-line">{message.content}</div>
+                <div className="whitespace-pre-line markdown-content">{message.content}</div>
                 {message.role === "user" && (
                   <User className="h-5 w-5 mt-1 ml-2 flex-shrink-0" />
                 )}
@@ -467,6 +470,41 @@ Based on the available data, I don't see this specific measurement in your curre
           size="icon"
         >
           <Send className="h-4 w-4" />
+        </Button>
+      </div>
+      
+      <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="text-xs" 
+          onClick={() => setInput("What do my cholesterol levels mean?")}
+        >
+          <Heart className="h-3 w-3 mr-1" /> Cholesterol
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="text-xs" 
+          onClick={() => setInput("Explain my glucose results")}
+        >
+          <Coffee className="h-3 w-3 mr-1" /> Glucose
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="text-xs" 
+          onClick={() => setInput("What diet do you recommend?")}
+        >
+          <Apple className="h-3 w-3 mr-1" /> Diet Advice
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="text-xs" 
+          onClick={() => setInput("What exercise should I do?")}
+        >
+          <Dumbbell className="h-3 w-3 mr-1" /> Exercise
         </Button>
       </div>
     </div>

@@ -72,7 +72,7 @@ export const UploadCard = ({ onUploadSuccess }: UploadCardProps) => {
       
       if (result) {
         toast.success("Upload successful", {
-          description: "Your file has been uploaded and is being processed"
+          description: "Your file has been uploaded and is being processed automatically"
         });
         
         // Call the callback to refresh data if provided

@@ -125,8 +125,25 @@ export const processBloodTest = async (id: string): Promise<boolean> => {
       
     if (error) throw error;
     
-    toast.success("Blood test processed successfully");
-    return true;
+    // Allow a small delay for the database to update
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Verify the update was successful
+    const { data, error: verifyError } = await supabase
+      .from('blood_tests')
+      .select('processed')
+      .eq('id', id)
+      .single();
+      
+    if (verifyError) throw verifyError;
+    
+    if (data && data.processed) {
+      console.log("Blood test processing confirmed");
+      return true;
+    } else {
+      console.error("Blood test processing verification failed");
+      return false;
+    }
   } catch (error) {
     console.error("Error processing blood test:", error);
     toast.error("Failed to process blood test");
