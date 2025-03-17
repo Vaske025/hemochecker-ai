@@ -93,7 +93,7 @@ export const ProfileModal = ({ isOpen, onClose }: ProfileModalProps) => {
           <Button 
             variant="ghost" 
             size="icon" 
-            className="absolute right-4 top-4" 
+            className="absolute right-4 top-4 h-8 w-8 p-0" 
             onClick={onClose}
           >
             <X className="h-4 w-4" />
