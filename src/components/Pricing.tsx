@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 export const Pricing = () => {
-  const [annual, setAnnual] = useState(false);
+  const [annual, setAnnual] = useState(true); // Set to true by default
   const { toast } = useToast();
   const navigate = useNavigate();
   

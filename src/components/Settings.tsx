@@ -9,10 +9,16 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { ProfileModal } from "./ProfileModal";
+import { EmailModal } from "./EmailModal";
+import { BillingModal } from "./BillingModal";
+import { PasswordModal } from "./PasswordModal";
+import { DataManagementModal } from "./DataManagementModal";
 
 export const Settings = () => {
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  const [activeModal, setActiveModal] = useState<string | null>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -44,23 +50,31 @@ export const Settings = () => {
   };
   
   const handleChangePassword = () => {
-    // Navigate to change password page or open a modal
-    toast({
-      title: "Coming Soon",
-      description: "Password change functionality will be available soon.",
-    });
+    setActiveModal("password");
   };
   
   const handleDataManagement = () => {
-    // Navigate to data management page
-    toast({
-      title: "Coming Soon",
-      description: "Data management functionality will be available soon.",
-    });
+    setActiveModal("data");
   };
   
   const handleUpgrade = () => {
     navigate("/pricing");
+  };
+  
+  const handleProfileEdit = () => {
+    setActiveModal("profile");
+  };
+  
+  const handleEmailEdit = () => {
+    setActiveModal("email");
+  };
+  
+  const handleBillingEdit = () => {
+    setActiveModal("billing");
+  };
+  
+  const closeModal = () => {
+    setActiveModal(null);
   };
   
   const settingsSections = [
@@ -73,13 +87,13 @@ export const Settings = () => {
           id: "profile",
           title: "Profile Information",
           description: "Update your personal information",
-          action: <ChevronRight className="h-5 w-5 text-gray-400" />
+          action: <Button variant="ghost" size="sm" onClick={handleProfileEdit}><ChevronRight className="h-5 w-5 text-gray-400" /></Button>
         },
         {
           id: "email",
           title: "Email Address",
           description: user?.email || "Not available",
-          action: <ChevronRight className="h-5 w-5 text-gray-400" />
+          action: <Button variant="ghost" size="sm" onClick={handleEmailEdit}><ChevronRight className="h-5 w-5 text-gray-400" /></Button>
         }
       ]
     },
@@ -98,7 +112,7 @@ export const Settings = () => {
           id: "billing",
           title: "Billing Information",
           description: "Manage payment methods",
-          action: <ChevronRight className="h-5 w-5 text-gray-400" />
+          action: <Button variant="ghost" size="sm" onClick={handleBillingEdit}><ChevronRight className="h-5 w-5 text-gray-400" /></Button>
         }
       ]
     },
@@ -234,6 +248,32 @@ export const Settings = () => {
           </motion.div>
         </motion.div>
       </div>
+      
+      {/* Modals */}
+      <ProfileModal 
+        isOpen={activeModal === "profile"} 
+        onClose={closeModal} 
+      />
+      
+      <EmailModal 
+        isOpen={activeModal === "email"} 
+        onClose={closeModal} 
+      />
+      
+      <BillingModal 
+        isOpen={activeModal === "billing"} 
+        onClose={closeModal} 
+      />
+      
+      <PasswordModal 
+        isOpen={activeModal === "password"} 
+        onClose={closeModal} 
+      />
+      
+      <DataManagementModal 
+        isOpen={activeModal === "data"} 
+        onClose={closeModal} 
+      />
     </div>
   );
 };

@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { HealthScoreChart } from "./HealthScoreChart";
+import { DashboardChat } from "./DashboardChat";
 
 export const Dashboard = () => {
   const [tests, setTests] = useState<BloodTest[]>([]);
@@ -203,6 +204,14 @@ export const Dashboard = () => {
             transition={{ duration: 0.3, delay: 0.2 }}
           >
             <UploadCard onUploadSuccess={fetchUserData} />
+          </motion.div>
+          
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.3 }}
+          >
+            <DashboardChat />
           </motion.div>
         </div>
       </div>
