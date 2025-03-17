@@ -15,6 +15,7 @@ import ReportPage from "./pages/ReportPage";
 import NotFound from "./pages/NotFound";
 import ContactPage from "./pages/ContactPage";
 import PricingPage from "./pages/PricingPage";
+import HealthAssistantPage from "./pages/HealthAssistantPage";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useEffect } from "react";
@@ -50,6 +51,14 @@ const App = () => {
                 element={
                   <ProtectedRoute>
                     <DashboardPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/health-assistant" 
+                element={
+                  <ProtectedRoute>
+                    <HealthAssistantPage />
                   </ProtectedRoute>
                 } 
               />

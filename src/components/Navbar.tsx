@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { MenuIcon, X, LogOut } from "lucide-react";
+import { MenuIcon, X, LogOut, Heart } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -38,6 +38,7 @@ export const Navbar = () => {
   const navLinks = isAuthenticated 
     ? [
         { name: "Dashboard", path: "/dashboard" },
+        { name: "Health Assistant", path: "/health-assistant", icon: <Heart className="h-4 w-4 mr-1" /> },
         { name: "Settings", path: "/settings" }
       ]
     : [
@@ -73,8 +74,9 @@ export const Navbar = () => {
               <Link
                 key={link.path}
                 to={link.path}
-                className={`nav-link ${location.pathname === link.path ? "active" : ""}`}
+                className={`nav-link flex items-center ${location.pathname === link.path ? "active" : ""}`}
               >
+                {link.icon && link.icon}
                 {link.name}
               </Link>
             ))}
@@ -122,13 +124,14 @@ export const Navbar = () => {
               <Link
                 key={link.path}
                 to={link.path}
-                className={`block px-3 py-2 rounded-md text-base font-medium ${
+                className={`flex items-center px-3 py-2 rounded-md text-base font-medium ${
                   location.pathname === link.path 
                     ? "bg-primary/10 text-primary" 
                     : "hover:bg-gray-100 dark:hover:bg-gray-800"
                 }`}
                 onClick={() => setIsMenuOpen(false)}
               >
+                {link.icon && link.icon}
                 {link.name}
               </Link>
             ))}

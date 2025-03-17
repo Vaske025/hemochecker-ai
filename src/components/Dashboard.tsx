@@ -10,7 +10,6 @@ import { format } from "date-fns";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { HealthScoreChart } from "./HealthScoreChart";
-import { DashboardChat } from "./DashboardChat";
 
 export const Dashboard = () => {
   const [tests, setTests] = useState<BloodTest[]>([]);
@@ -210,8 +209,19 @@ export const Dashboard = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.3 }}
+            className="glass-card rounded-xl p-6"
           >
-            <DashboardChat />
+            <h3 className="text-lg font-semibold mb-4">Need Health Advice?</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+              Chat with our Health Assistant for personalized guidance based on your test results.
+            </p>
+            <Button 
+              className="w-full"
+              onClick={() => navigate('/health-assistant')}
+            >
+              <Heart className="mr-2 h-4 w-4" />
+              Health Assistant
+            </Button>
           </motion.div>
         </div>
       </div>
