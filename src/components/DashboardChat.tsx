@@ -1,158 +1,185 @@
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { Bot, User, SendHorizontal, Sparkles, Heart, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Bot, Send, Brain, PlusCircle, CalendarClock } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export const DashboardChat = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "👨‍⚕️ Hello! I'm your AI health assistant. How can I help you today?" }
+  const [message, setMessage] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [messages, setMessages] = useState<{role: string, content: string}[]>([
+    {
+      role: "assistant",
+      content: "👋 Hi there! I'm your health assistant. I can help you understand your blood test results, suggest lifestyle improvements, or answer general health questions. What would you like to know today?"
+    }
   ]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSendMessage = async () => {
-    if (!input.trim()) return;
+    if (!message.trim()) return;
     
-    const userMessage = { role: "user" as const, content: input };
+    // Add user message
+    const userMessage = { role: "user", content: message };
     setMessages(prev => [...prev, userMessage]);
-    setInput("");
-    setIsLoading(true);
+    setMessage("");
+    
+    // Simulate AI thinking
+    setIsTyping(true);
     
     try {
-      // Simulate AI response
+      // Simulate response delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      let response = "";
-      const userQuestion = input.toLowerCase();
+      // Add simulated assistant response
+      let responseContent = "";
       
-      if (userQuestion.includes("health score") || userQuestion.includes("score")) {
-        response = "💯 Your health score is calculated based on your blood test results compared to standard reference ranges. It provides a general indication of your overall health status.\n\nThe score ranges from 0-100, with higher scores indicating better health. Factors that can lower your score include elevated or low levels of important biomarkers.\n\nTo improve your score, focus on the specific recommendations provided in your latest blood test analysis.";
-      } 
-      else if (userQuestion.includes("next test") || userQuestion.includes("should i test")) {
-        response = "🔄 Based on general health guidelines, it's recommended to get a comprehensive blood panel at least once a year for preventive screening.\n\nHowever, given your previous results, you might benefit from a follow-up test in 3-6 months to monitor any parameters that were outside the normal range.\n\nConsider discussing with your healthcare provider about testing specifically for:\n• A complete blood count (CBC)\n• Comprehensive metabolic panel\n• Lipid profile\n• Hemoglobin A1c (if previous glucose was elevated)";
-      }
-      else if (userQuestion.includes("improve") || userQuestion.includes("better")) {
-        response = "🌱 To improve your health metrics:\n\n1. Focus on a balanced diet rich in whole foods, lean proteins, and plenty of vegetables\n2. Engage in regular physical activity (150+ minutes per week)\n3. Ensure adequate sleep (7-8 hours nightly)\n4. Manage stress through mindfulness, meditation, or other relaxation techniques\n5. Stay hydrated with plenty of water\n6. Limit alcohol and avoid smoking\n\nFor more personalized recommendations, review the analysis of your specific blood test results.";
-      }
-      else if (userQuestion.includes("vitamin") || userQuestion.includes("supplement")) {
-        response = "💊 Supplement recommendations should be based on your specific deficiencies and medical history. Common supplements that may benefit many people include:\n\n• Vitamin D (especially if you have limited sun exposure)\n• Omega-3 fatty acids (for heart and brain health)\n• Magnesium (for various biochemical reactions)\n• B-complex vitamins (for energy metabolism)\n\nBefore starting any supplement regimen, please consult with your healthcare provider and consider getting tested for specific deficiencies.";
-      }
-      else {
-        response = "Thank you for your question. To give you the most accurate advice, I'd need to see your specific blood test results. Please upload your blood tests or view your existing reports for personalized insights.\n\nFor more detailed analysis, you can also chat with me directly from any of your blood test report pages.";
+      if (message.toLowerCase().includes("score") || message.toLowerCase().includes("health score")) {
+        responseContent = "🏆 Your health score is calculated based on the values from your blood tests. For more detailed information, please check the Health Overview section on your dashboard. If you've recently uploaded a new test, it may take a moment to update.";
+      } else if (message.toLowerCase().includes("next test") || message.toLowerCase().includes("when")) {
+        responseContent = "📅 For most people, an annual comprehensive blood test is recommended. However, this can vary based on your age, existing health conditions, and risk factors. I suggest discussing with your healthcare provider about the ideal frequency for your specific situation.";
+      } else if (message.toLowerCase().includes("improve") || message.toLowerCase().includes("better")) {
+        responseContent = "💪 To improve your health scores, focus on: \n\n1. Regular physical activity (at least 150 minutes/week)\n2. A balanced diet rich in fruits, vegetables, whole grains\n3. Adequate hydration (8-10 glasses of water daily)\n4. Quality sleep (7-9 hours nightly)\n5. Stress management techniques\n\nSmall, consistent changes often yield the best long-term results!";
+      } else if (message.toLowerCase().includes("cholesterol") || message.toLowerCase().includes("hdl") || message.toLowerCase().includes("ldl")) {
+        responseContent = "🥗 To maintain healthy cholesterol levels:\n\n• Increase soluble fiber (oats, beans, fruits)\n• Choose healthy fats (olive oil, avocados, nuts)\n• Limit saturated and trans fats\n• Stay physically active\n• Consider plant sterols/stanols\n\nWould you like more specific advice based on your latest test results?";
+      } else {
+        responseContent = "I understand you're asking about " + message.slice(0, 30) + (message.length > 30 ? "..." : "") + ". For more personalized insights, I'd recommend uploading your latest blood test results so I can provide tailored advice. Would you like help with that?";
       }
       
-      setMessages(prev => [...prev, { role: "assistant", content: response }]);
+      const assistantMessage = { role: "assistant", content: responseContent };
+      setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to get a response. Please try again.",
-        variant: "destructive"
-      });
+      console.error("Error getting response:", error);
+      toast.error("Sorry, I couldn't process your request right now.");
     } finally {
-      setIsLoading(false);
+      setIsTyping(false);
     }
   };
 
-  const quickQuestions = [
-    { text: "How is my health score calculated?", icon: <Brain className="h-3 w-3 mr-1" /> },
-    { text: "What tests should I take next?", icon: <PlusCircle className="h-3 w-3 mr-1" /> },
-    { text: "How can I improve my health?", icon: <CalendarClock className="h-3 w-3 mr-1" /> }
-  ];
+  const handleQuickQuestion = (question: string) => {
+    setMessage(question);
+    setTimeout(() => {
+      handleSendMessage();
+    }, 100);
+  };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="glass-card rounded-xl p-4 overflow-hidden"
-    >
-      <h3 className="text-lg font-semibold mb-3 flex items-center">
-        <Bot className="mr-2 h-5 w-5 text-primary" />
-        Quick Health Assistant
-      </h3>
+    <Card className="shadow-md w-full glass-card">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg font-semibold flex items-center">
+          <Sparkles className="h-5 w-5 mr-2 text-primary" />
+          Health Assistant
+        </CardTitle>
+      </CardHeader>
       
-      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 mb-3 h-48 overflow-y-auto">
-        {messages.map((message, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className={`flex ${message.role === "user" ? "justify-end" : "justify-start"} mb-2`}
-          >
+      <CardContent className="overflow-y-auto max-h-80 mb-2">
+        <div className="space-y-4">
+          {messages.map((msg, index) => (
             <div 
-              className={`
-                max-w-[85%] p-2 rounded-lg text-sm
-                ${message.role === "user" 
-                  ? "bg-primary text-white rounded-tr-none" 
-                  : "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-tl-none"}
-              `}
+              key={index} 
+              className={`flex ${msg.role === "assistant" ? "justify-start" : "justify-end"}`}
             >
-              <div className="whitespace-pre-line">{message.content}</div>
-            </div>
-          </motion.div>
-        ))}
-        
-        {isLoading && (
-          <div className="flex justify-start mb-2">
-            <div className="bg-gray-200 dark:bg-gray-700 p-2 rounded-lg rounded-tl-none text-gray-800 dark:text-gray-200 text-sm">
-              <div className="flex items-center space-x-2">
-                <div className="flex items-center">
-                  <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-                  <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce mx-1" style={{ animationDelay: "300ms" }}></div>
-                  <div className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: "600ms" }}></div>
+              <div className={`flex max-w-[80%] ${msg.role === "assistant" ? "flex-row" : "flex-row-reverse"}`}>
+                <div className={`flex items-start p-1.5 ${msg.role === "assistant" ? "mr-2" : "ml-2"}`}>
+                  {msg.role === "assistant" ? (
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Bot className="h-4 w-4 text-primary" />
+                    </div>
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                      <User className="h-4 w-4" />
+                    </div>
+                  )}
+                </div>
+                
+                <div 
+                  className={`p-3 rounded-lg ${
+                    msg.role === "assistant" 
+                      ? "bg-muted text-left" 
+                      : "bg-primary text-primary-foreground text-right"
+                  }`}
+                >
+                  <p className="whitespace-pre-line">{msg.content}</p>
                 </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          ))}
+          
+          {isTyping && (
+            <div className="flex justify-start">
+              <div className="flex max-w-[80%]">
+                <div className="flex items-start p-1.5 mr-2">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Bot className="h-4 w-4 text-primary" />
+                  </div>
+                </div>
+                <div className="p-3 rounded-lg bg-muted">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce [animation-delay:0ms]"></div>
+                    <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce [animation-delay:150ms]"></div>
+                    <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce [animation-delay:300ms]"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </CardContent>
       
-      <div className="flex space-x-2 mb-2">
-        <Input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about your health..."
-          onKeyDown={(e) => e.key === "Enter" && !isLoading && handleSendMessage()}
-          disabled={isLoading}
-          className="flex-1 text-sm"
-          size="sm"
-        />
-        <Button 
-          onClick={handleSendMessage} 
-          disabled={isLoading || !input.trim()}
-          size="icon"
-          className="h-9 w-9"
-        >
-          <Send className="h-4 w-4" />
-        </Button>
-      </div>
-      
-      <div className="flex flex-wrap gap-2">
-        {quickQuestions.map((q, idx) => (
-          <Button 
-            key={idx}
-            variant="outline" 
-            size="sm" 
-            className="text-xs flex-1"
-            onClick={() => {
-              setInput(q.text);
-              setTimeout(() => handleSendMessage(), 100);
-            }}
+      <div className="px-4 py-2 border-t border-border">
+        <div className="flex flex-wrap gap-2 mb-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs flex items-center"
+            onClick={() => handleQuickQuestion("What affects my health score?")}
           >
-            {q.icon} {q.text}
+            <Activity className="h-3 w-3 mr-1" />
+            Health Score
           </Button>
-        ))}
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs flex items-center"
+            onClick={() => handleQuickQuestion("How can I improve my cholesterol?")}
+          >
+            <Heart className="h-3 w-3 mr-1" />
+            Cholesterol
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs flex items-center"
+            onClick={() => handleQuickQuestion("When should I take my next blood test?")}
+          >
+            <Sparkles className="h-3 w-3 mr-1" />
+            Next Test
+          </Button>
+        </div>
       </div>
-    </motion.div>
+      
+      <CardFooter className="pt-0">
+        <div className="flex items-center w-full gap-2">
+          <Textarea 
+            placeholder="Ask me anything about your health..."
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            className="min-h-10 flex-1"
+            maxLength={280}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage();
+              }
+            }}
+          />
+          <Button onClick={handleSendMessage} disabled={!message.trim() || isTyping} size="icon">
+            <SendHorizontal className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardFooter>
+    </Card>
   );
 };
