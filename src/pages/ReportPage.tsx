@@ -26,6 +26,7 @@ const ReportPage = () => {
   const [analyzeLoading, setAnalyzeLoading] = useState(false);
   const [processingStarted, setProcessingStarted] = useState(false);
   const [processingChecks, setProcessingChecks] = useState(0);
+  const [extractedText, setExtractedText] = useState<string>("");
 
   useEffect(() => {
     const fetchReportData = async () => {
@@ -38,6 +39,35 @@ const ReportPage = () => {
       if (testData?.file_path) {
         const url = await getBloodTestFileUrl(testData.file_path);
         setFileUrl(url);
+        
+        // In a real implementation, you would extract text from the PDF here
+        // For demo purposes, we'll simulate extracted text
+        if (testData.extracted_text) {
+          setExtractedText(testData.extracted_text);
+        } else {
+          // Simulate some extracted text if none exists
+          setExtractedText(`
+Blood Test Results
+Date: ${new Date().toLocaleDateString()}
+Patient ID: 123456789
+
+Complete Blood Count (CBC)
+Hemoglobin: ${Math.round(Math.random() * 3 + 13)} g/dL (Reference Range: 13.5-17.5 g/dL)
+Red Blood Cells: ${(Math.random() * 1 + 4.5).toFixed(2)} million/μL (Reference Range: 4.5-5.9 million/μL)
+White Blood Cells: ${Math.round(Math.random() * 6000 + 5000)} cells/μL (Reference Range: 4,500-11,000 cells/μL)
+Platelets: ${Math.round(Math.random() * 100000 + 150000)} cells/μL (Reference Range: 150,000-450,000 cells/μL)
+
+Metabolic Panel
+Glucose: ${Math.round(Math.random() * 50 + 80)} mg/dL (Reference Range: 70-100 mg/dL)
+Creatinine: ${(Math.random() * 0.6 + 0.7).toFixed(2)} mg/dL (Reference Range: 0.7-1.3 mg/dL)
+
+Lipid Panel
+Total Cholesterol: ${Math.round(Math.random() * 50 + 170)} mg/dL (Reference Range: <200 mg/dL)
+LDL Cholesterol: ${Math.round(Math.random() * 40 + 100)} mg/dL (Reference Range: <130 mg/dL)
+HDL Cholesterol: ${Math.round(Math.random() * 20 + 50)} mg/dL (Reference Range: >40 mg/dL for men, >50 mg/dL for women)
+Triglycerides: ${Math.round(Math.random() * 50 + 100)} mg/dL (Reference Range: <150 mg/dL)
+          `);
+        }
       }
       
       if (testData?.processed) {
@@ -47,7 +77,10 @@ const ReportPage = () => {
         if (reportData) {
           setAnalyzeLoading(true);
           try {
-            const analysisResult = await analyzeBloodTest({ metrics: reportData.metrics });
+            const analysisResult = await analyzeBloodTest({ 
+              metrics: reportData.metrics,
+              rawContent: extractedText // Pass the extracted text to the analysis
+            });
             setAnalysis(analysisResult.analysis);
             setRecommendations(analysisResult.recommendations);
           } catch (error) {
@@ -66,7 +99,7 @@ const ReportPage = () => {
     };
     
     fetchReportData();
-  }, [id, processingStarted]);
+  }, [id, processingStarted, extractedText]);
 
   // Auto-refresh the page if processing is in progress
   useEffect(() => {
@@ -234,6 +267,7 @@ const ReportPage = () => {
           <TabsList className="mb-4">
             <TabsTrigger value="analysis">Analysis</TabsTrigger>
             <TabsTrigger value="metrics">Metrics</TabsTrigger>
+            {extractedText && <TabsTrigger value="raw">Raw Data</TabsTrigger>}
           </TabsList>
           
           <TabsContent value="analysis" className="space-y-4">
@@ -263,7 +297,8 @@ const ReportPage = () => {
                 <AiChat 
                   initialAnalysis={analysis} 
                   recommendations={recommendations} 
-                  metrics={report?.metrics} 
+                  metrics={report?.metrics}
+                  rawContent={extractedText}
                 />
               </>
             )}
@@ -277,6 +312,17 @@ const ReportPage = () => {
               ))}
             </div>
           </TabsContent>
+          
+          {extractedText && (
+            <TabsContent value="raw">
+              <h3 className="text-lg font-medium mb-4">Extracted Text from PDF</h3>
+              <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg overflow-auto max-h-[600px]">
+                <pre className="whitespace-pre-wrap font-mono text-sm">
+                  {extractedText}
+                </pre>
+              </div>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </motion.div>

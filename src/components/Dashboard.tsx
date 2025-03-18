@@ -1,6 +1,5 @@
-
 import { motion } from "framer-motion";
-import { CalendarDays, ChevronRight, Plus, RefreshCw } from "lucide-react";
+import { CalendarDays, ChevronRight, Plus, RefreshCw, BarChart, Upload, FileText, Calendar, ArrowUpRight, ArrowRight, heart, Activity } from "lucide-react";
 import { useState, useEffect } from "react";
 import { UploadCard } from "./UploadCard";
 import { Button } from "@/components/ui/button";
@@ -219,7 +218,7 @@ export const Dashboard = () => {
               className="w-full"
               onClick={() => navigate('/health-assistant')}
             >
-              <Heart className="mr-2 h-4 w-4" />
+              <heart className="mr-2 h-4 w-4" />
               Health Assistant
             </Button>
           </motion.div>

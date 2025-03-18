@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Bot, User, SendHorizontal, Sparkles, Heart, Activity, Brain, Pills, Dumbbell } from "lucide-react";
+import { Bot, User, SendHorizontal, Sparkles, Heart, Activity, Brain, Pill, Dumbbell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -182,7 +182,7 @@ export const HealthAssistant = () => {
                   className="text-xs flex items-center"
                   onClick={() => handleQuickQuestion("How do I improve my vitamin levels?")}
                 >
-                  <Pills className="h-3 w-3 mr-1" />
+                  <Pill className="h-3 w-3 mr-1" />
                   Vitamins
                 </Button>
               </div>
@@ -219,7 +219,7 @@ export const HealthAssistant = () => {
                 Fitness
               </TabsTrigger>
               <TabsTrigger value="nutrition">
-                <Pills className="h-4 w-4 mr-2" />
+                <Pill className="h-4 w-4 mr-2" />
                 Nutrition
               </TabsTrigger>
               <TabsTrigger value="mental">

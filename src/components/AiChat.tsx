@@ -1,9 +1,9 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Send, Bot, User, AlertCircle, Heart, Pill, Activity, Coffee, Apple, Dumbbell } from "lucide-react";
+import { Send, Bot, User, AlertCircle, heart, Pill, Activity, Coffee, Apple, Dumbbell } from "lucide-react";
 import { motion } from "framer-motion";
 import { BloodTestMetric } from "@/types/BloodTest";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -17,9 +17,10 @@ interface AiChatProps {
   initialAnalysis: string;
   recommendations: string[];
   metrics?: BloodTestMetric[];
+  rawContent?: string; // Add the raw content from the PDF
 }
 
-export const AiChat = ({ initialAnalysis, recommendations, metrics = [] }: AiChatProps) => {
+export const AiChat = ({ initialAnalysis, recommendations, metrics = [], rawContent = "" }: AiChatProps) => {
   const [messages, setMessages] = useState<Message[]>([
     { role: "assistant", content: "👨‍⚕️ " + initialAnalysis },
     { role: "assistant", content: "💡 Here are my recommendations:\n" + recommendations.map(rec => `• ${rec}`).join("\n") },
@@ -27,8 +28,14 @@ export const AiChat = ({ initialAnalysis, recommendations, metrics = [] }: AiCha
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [pdfData, setPdfData] = useState({ metrics, rawContent });
   const { toast } = useToast();
 
+  // Update pdfData when metrics or rawContent change
+  useEffect(() => {
+    setPdfData({ metrics, rawContent });
+  }, [metrics, rawContent]);
+  
   const getMetricReferenceRange = (name: string): string => {
     // Common reference ranges for blood tests (simplified for demonstration)
     const referenceRanges: Record<string, string> = {
@@ -48,6 +55,22 @@ export const AiChat = ({ initialAnalysis, recommendations, metrics = [] }: AiCha
     return referenceRanges[name] || "Reference range varies by lab and patient factors";
   };
 
+  const findMetricInRawContent = (metricName: string): string | null => {
+    if (!rawContent) return null;
+    
+    // Create a regex pattern that looks for the metric name followed by numbers and possibly units
+    const pattern = new RegExp(`${metricName}[:\\s]+(\\d+\\.?\\d*)\\s*([a-zA-Z/]+)?`, 'i');
+    const match = rawContent.match(pattern);
+    
+    if (match) {
+      const value = match[1];
+      const unit = match[2] || '';
+      return `${value} ${unit}`.trim();
+    }
+    
+    return null;
+  };
+
   const handleSendMessage = async () => {
     if (!input.trim()) return;
     
@@ -63,6 +86,25 @@ export const AiChat = ({ initialAnalysis, recommendations, metrics = [] }: AiCha
       // Generate a detailed response based on the message and available metrics
       let response = "";
       const userQuestion = input.toLowerCase();
+      
+      // Process the raw PDF content to extract relevant information
+      let relevantContent = "";
+      if (rawContent) {
+        // Try to find content relevant to the user's question in the raw PDF text
+        const keywords = userQuestion.split(' ').filter(word => 
+          word.length > 3 && !['what', 'when', 'where', 'which', 'about', 'tell', 'explain'].includes(word)
+        );
+        
+        for (const keyword of keywords) {
+          // Create a basic regex to find paragraphs containing the keyword
+          const pattern = new RegExp(`[^.]*${keyword}[^.]*\\.`, 'gi');
+          const matches = rawContent.match(pattern);
+          
+          if (matches) {
+            relevantContent += matches.join(' ');
+          }
+        }
+      }
       
       // Check if asking about a specific metric
       const metricQueries = [
@@ -83,10 +125,21 @@ export const AiChat = ({ initialAnalysis, recommendations, metrics = [] }: AiCha
       if (matchedQuery) {
         const metricName = matchedQuery.metric;
         const emoji = matchedQuery.emoji;
-        const matchedMetric = metrics.find(m => m.name === metricName);
+        const matchedMetric = pdfData.metrics.find(m => m.name === metricName);
+        
+        // Look for this metric in the raw content if we couldn't find it in structured data
+        const rawMetricValue = findMetricInRawContent(metricName);
         
         if (matchedMetric) {
           response = `${emoji} **${metricName} Analysis**\n\n${generateDoctorResponse(matchedMetric, metricName)}`;
+        } else if (rawMetricValue) {
+          response = `${emoji} **About ${metricName}**\n\nI found a ${metricName} value of ${rawMetricValue} in your lab results. 
+          
+The standard reference range is: ${getMetricReferenceRange(metricName)}
+
+Since I don't have the reference ranges from your specific lab, I can't determine if this value is normal, high, or low. I recommend comparing this value with the reference range provided on your lab report.`;
+        } else if (relevantContent) {
+          response = `${emoji} **About ${metricName}**\n\nFrom your uploaded document, I found this information related to ${metricName}:\n\n"${relevantContent.trim()}"\n\nThe standard reference range is generally: ${getMetricReferenceRange(metricName)}`;
         } else {
           response = `${emoji} **About ${metricName}**\n\nFrom a medical perspective, ${metricName} is an important biomarker that helps us assess your health status.
 
@@ -100,8 +153,8 @@ Based on the available data, I don't see this specific measurement in your curre
         // Generate overall summary with doctor-like language
         response = "🔍 **Complete Analysis of Your Blood Test Results**\n\n";
         
-        if (metrics.length > 0) {
-          const abnormalMetrics = metrics.filter(m => m.status !== "normal");
+        if (pdfData.metrics.length > 0) {
+          const abnormalMetrics = pdfData.metrics.filter(m => m.status !== "normal");
           
           if (abnormalMetrics.length > 0) {
             response += "⚠️ **Key findings that require attention:**\n\n";
@@ -112,7 +165,7 @@ Based on the available data, I don't see this specific measurement in your curre
             response += "\n";
           }
           
-          const normalMetrics = metrics.filter(m => m.status === "normal");
+          const normalMetrics = pdfData.metrics.filter(m => m.status === "normal");
           if (normalMetrics.length > 0) {
             response += "✅ **Values within normal range:**\n\n";
             normalMetrics.forEach(metric => {
@@ -127,6 +180,11 @@ Based on the available data, I don't see this specific measurement in your curre
           } else {
             response += "Maintaining your current health practices as they seem to be working well. Your results indicate good overall health.";
           }
+        } else if (relevantContent) {
+          response = "🔍 **Analysis Based on Your Document**\n\n";
+          response += "I found the following relevant information in your document:\n\n";
+          response += `"${relevantContent.trim()}"\n\n`;
+          response += "For a more detailed analysis, I would need to see structured lab values with their reference ranges.";
         } else {
           response = "I don't have complete information about your blood test results. To provide a comprehensive assessment, I would need to see all relevant biomarkers and their values.";
         }
@@ -134,8 +192,8 @@ Based on the available data, I don't see this specific measurement in your curre
         response = "😊 You're welcome. As a medical professional, my goal is to help you understand your test results and their implications for your health. If you have any other questions about specific markers or health concerns, please don't hesitate to ask.";
       } else if (userQuestion.includes("diet") || userQuestion.includes("food") || userQuestion.includes("eat")) {
         // Diet-related response
-        const elevatedCholesterol = metrics?.some(m => (m.name.includes("Cholesterol") || m.name.includes("LDL")) && m.status === "elevated");
-        const elevatedGlucose = metrics?.some(m => m.name.includes("Glucose") && m.status === "elevated");
+        const elevatedCholesterol = pdfData.metrics?.some(m => (m.name.includes("Cholesterol") || m.name.includes("LDL")) && m.status === "elevated");
+        const elevatedGlucose = pdfData.metrics?.some(m => m.name.includes("Glucose") && m.status === "elevated");
         
         response = "🍽️ **Dietary Recommendations Based on Your Blood Work**\n\n";
         
@@ -167,13 +225,13 @@ Based on the available data, I don't see this specific measurement in your curre
         response += "Remember that individual nutrition needs vary, and these recommendations are based solely on your blood work results.";
       } else if (userQuestion.includes("exercise") || userQuestion.includes("workout") || userQuestion.includes("activity")) {
         // Exercise-related response
-        response = "🏃‍♂️ **Physical Activity Recommendations**\n\n";
-        
-        const hasCardiovascularRiskFactors = metrics?.some(m => 
+        const hasCardiovascularRiskFactors = pdfData.metrics?.some(m => 
           (m.name.includes("Cholesterol") && m.status === "elevated") || 
           (m.name.includes("Glucose") && m.status === "elevated") ||
           (m.name.includes("Triglycerides") && m.status === "elevated")
         );
+        
+        response = "🏃‍♂️ **Physical Activity Recommendations**\n\n";
         
         if (hasCardiovascularRiskFactors) {
           response += "🫀 **For your cardiovascular risk factors:**\n\n";
@@ -190,19 +248,28 @@ Based on the available data, I don't see this specific measurement in your curre
           response += "• 🪑 Stay active throughout the day by taking breaks from sitting\n\n";
           response += "Regular exercise contributes to maintaining optimal blood markers and overall health.";
         }
+      } else if (relevantContent) {
+        // Use the extracted relevant content from the PDF
+        response = "📄 **Based on Your Uploaded Document**\n\n";
+        response += `I found this relevant information in your test results:\n\n"${relevantContent.trim()}"\n\n`;
+        response += "Is there something specific about this you'd like me to explain further?";
       } else {
         // Generic response with more doctor-like language
         response = "👨‍⚕️ **Medical Insight Based on Your Blood Work**\n\n";
         
         // Check for any abnormal values
-        const abnormalMetrics = metrics?.filter(m => m.status !== "normal") || [];
+        const abnormalMetrics = pdfData.metrics?.filter(m => m.status !== "normal") || [];
         
         if (abnormalMetrics.length > 0) {
           response += "Your blood work shows some values that deserve attention. In particular, ";
           response += abnormalMetrics.map(m => `your ${m.name} level of ${m.value} ${m.unit} is ${m.status}`).join(", ") + ". ";
           response += "These findings could be relevant to your question.\n\n";
-        } else {
+        } else if (pdfData.metrics.length > 0) {
           response += "Your blood work values appear to be within normal ranges, which is reassuring from a clinical perspective.\n\n";
+        } else if (rawContent) {
+          response += "I've analyzed your uploaded document but couldn't find specific lab values in a structured format. For the most accurate analysis, I'd need to see clear lab values with their reference ranges.\n\n";
+        } else {
+          response += "I don't have enough information about your blood test results to provide a detailed analysis. If you've uploaded a blood test, it may still be processing.\n\n";
         }
         
         response += "To give you a more specific answer about your question, could you provide more details about any particular symptoms or health concerns you're experiencing? This would help me contextualize your results more precisely.";
@@ -480,7 +547,7 @@ Based on the available data, I don't see this specific measurement in your curre
           className="text-xs" 
           onClick={() => setInput("What do my cholesterol levels mean?")}
         >
-          <Heart className="h-3 w-3 mr-1" /> Cholesterol
+          <heart className="h-3 w-3 mr-1" /> Cholesterol
         </Button>
         <Button 
           variant="outline" 

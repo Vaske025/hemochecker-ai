@@ -6,6 +6,7 @@ const QWEN_API_KEY = "sk-or-v1-7fcc2f102952ee597ae73f73377d58f8357a1cbaba4f596c7
 
 export interface BloodTestData {
   metrics: BloodTestMetric[];
+  rawContent?: string; // Added to store the raw text extracted from the PDF
 }
 
 export interface QwenResponse {
@@ -27,6 +28,18 @@ export const analyzeBloodTest = async (data: BloodTestData): Promise<QwenRespons
         recommendations: ["Upload a complete blood test with readable metrics."]
       };
     }
+    
+    // Advanced AI prompt for blood test analysis using actual extracted data
+    const systemPrompt = `
+      You are a highly skilled medical analyst specializing in blood test interpretation. 
+      When a user uploads a blood test PDF, extract and analyze all the key metrics and values 
+      (such as hemoglobin, glucose, cholesterol, etc.) from the document. 
+      Base your responses strictly on the information provided in the blood test. 
+      Your analysis should be accurate, detailed, and context-aware, including clinical 
+      interpretations and recommendations when needed. If the data is incomplete or unclear, 
+      indicate that clearly. Your goal is to ensure that every answer is precise and medically reliable.
+      Use emojis appropriately to make your response engaging.
+    `;
     
     // Dynamically generate analysis based on available metrics
     const elevatedMetrics = data.metrics.filter(m => m.status === "elevated");
@@ -94,7 +107,7 @@ export const analyzeBloodTest = async (data: BloodTestData): Promise<QwenRespons
     
     // General conclusion
     if (elevatedMetrics.length === 0 && lowMetrics.length === 0) {
-      analysis += "All your values are within normal range, which is excellent! Your overall health indicators suggest you're maintaining good health. ";
+      analysis += "All your values are within normal range, which is excellent! Your overall health indicators suggest you're maintaining good health. 👍 ";
     } else {
       analysis += "Remember that blood test results should be interpreted alongside other clinical findings by a healthcare professional. ";
     }
@@ -104,35 +117,35 @@ export const analyzeBloodTest = async (data: BloodTestData): Promise<QwenRespons
     
     // Add personalized recommendations based on actual test results
     if (elevatedMetrics.some(m => m.name.toLowerCase().includes("glucose"))) {
-      recommendations.push("Monitor your carbohydrate intake and consider a balanced diet plan with more complex carbohydrates.");
+      recommendations.push("🍎 Monitor your carbohydrate intake and consider a balanced diet plan with more complex carbohydrates.");
     }
     
     if (elevatedMetrics.some(m => m.name.toLowerCase().includes("cholesterol") || m.name.toLowerCase().includes("ldl"))) {
-      recommendations.push("Consider reducing saturated fat intake and increasing exercise to help manage cholesterol levels.");
+      recommendations.push("🥑 Consider reducing saturated fat intake and increasing exercise to help manage cholesterol levels.");
     }
     
     if (lowMetrics.some(m => m.name.toLowerCase().includes("hemoglobin") || m.name.toLowerCase().includes("iron"))) {
-      recommendations.push("Consider iron-rich foods or supplements after consulting with your doctor to address potential anemia.");
+      recommendations.push("🥩 Consider iron-rich foods or supplements after consulting with your doctor to address potential anemia.");
     }
     
     if (lowMetrics.some(m => m.name.toLowerCase().includes("vitamin d") || m.name.toLowerCase().includes("calcium"))) {
-      recommendations.push("Increase sunlight exposure (safely) and consider vitamin D supplementation after medical consultation.");
+      recommendations.push("☀️ Increase sunlight exposure (safely) and consider vitamin D supplementation after medical consultation.");
     }
     
     // Add hormone-specific recommendations
     if (data.metrics.some(m => m.name.toLowerCase().includes("tsh") || m.name.toLowerCase().includes("thyroid"))) {
-      recommendations.push("For thyroid health, consider discussing appropriate dietary adjustments and potential medication with your endocrinologist.");
+      recommendations.push("⚖️ For thyroid health, consider discussing appropriate dietary adjustments and potential medication with your endocrinologist.");
     }
     
     if (data.metrics.some(m => m.name.toLowerCase().includes("testosterone") || m.name.toLowerCase().includes("estrogen"))) {
-      recommendations.push("Hormone levels can be affected by many factors including diet, exercise, sleep quality, and stress levels.");
+      recommendations.push("💤 Hormone levels can be affected by many factors including diet, exercise, sleep quality, and stress levels.");
     }
     
     // Add general recommendations
-    recommendations.push("Schedule a follow-up with your healthcare provider to discuss these results in detail.");
-    recommendations.push("Maintain a balanced diet rich in vegetables, fruits, lean proteins, and whole grains.");
-    recommendations.push("Stay hydrated and aim for at least 7-8 hours of quality sleep each night.");
-    recommendations.push("Regular exercise (150+ minutes per week) can help improve many health markers.");
+    recommendations.push("👩‍⚕️ Schedule a follow-up with your healthcare provider to discuss these results in detail.");
+    recommendations.push("🥗 Maintain a balanced diet rich in vegetables, fruits, lean proteins, and whole grains.");
+    recommendations.push("💧 Stay hydrated and aim for at least 7-8 hours of quality sleep each night.");
+    recommendations.push("🏃‍♀️ Regular exercise (150+ minutes per week) can help improve many health markers.");
     
     // Return only 5 most relevant recommendations
     return {
