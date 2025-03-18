@@ -182,7 +182,7 @@ Based on the available data, I don't see this specific measurement in your curre
         } else if (relevantContent) {
           response = "🔍 **Analysis Based on Your Document**\n\n";
           response += "I found the following relevant information in your document:\n\n";
-          response += `"${relevantContent.trim()}"\n\n";
+          response += `"${relevantContent.trim()}"\n\n`;
           response += "For a more detailed analysis, I would need to see structured lab values with their reference ranges.";
         } else {
           response = "I don't have complete information about your blood test results. To provide a comprehensive assessment, I would need to see all relevant biomarkers and their values.";
