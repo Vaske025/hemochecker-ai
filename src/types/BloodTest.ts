@@ -8,6 +8,7 @@ export interface BloodTest {
   file_size: number;
   created_at: string;
   processed: boolean;
+  extracted_text?: string; // Add this optional property
 }
 
 export interface BloodTestMetric {

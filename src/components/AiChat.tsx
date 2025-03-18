@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Send, Bot, User, AlertCircle, heart, Pill, Activity, Coffee, Apple, Dumbbell } from "lucide-react";
+import { Send, Bot, User, AlertCircle, Heart, Pill, Activity, Coffee, Apple, Dumbbell } from "lucide-react";
 import { motion } from "framer-motion";
 import { BloodTestMetric } from "@/types/BloodTest";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -183,7 +182,7 @@ Based on the available data, I don't see this specific measurement in your curre
         } else if (relevantContent) {
           response = "🔍 **Analysis Based on Your Document**\n\n";
           response += "I found the following relevant information in your document:\n\n";
-          response += `"${relevantContent.trim()}"\n\n`;
+          response += `"${relevantContent.trim()}"\n\n";
           response += "For a more detailed analysis, I would need to see structured lab values with their reference ranges.";
         } else {
           response = "I don't have complete information about your blood test results. To provide a comprehensive assessment, I would need to see all relevant biomarkers and their values.";
@@ -413,6 +412,7 @@ Based on the available data, I don't see this specific measurement in your curre
       "Further evaluation is recommended to determine the cause and appropriate management strategy.";
   };
 
+  // Get explanation for metric
   const getMetricExplanation = (name: string, status: string): string => {
     const explanations: Record<string, Record<string, string>> = {
       "Hemoglobin": {
@@ -547,7 +547,7 @@ Based on the available data, I don't see this specific measurement in your curre
           className="text-xs" 
           onClick={() => setInput("What do my cholesterol levels mean?")}
         >
-          <heart className="h-3 w-3 mr-1" /> Cholesterol
+          <Heart className="h-3 w-3 mr-1" /> Cholesterol
         </Button>
         <Button 
           variant="outline" 
