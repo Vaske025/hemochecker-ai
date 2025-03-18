@@ -1,5 +1,4 @@
-
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { getBloodTestById, getBloodTestFileUrl, getBloodTestReport, processBloodTest } from "@/services/bloodTestService";
@@ -27,12 +26,12 @@ const ReportPage = () => {
   const [processingStarted, setProcessingStarted] = useState(false);
   const [processingChecks, setProcessingChecks] = useState(0);
   const [extractedText, setExtractedText] = useState<string>("");
+  const [shouldAnalyze, setShouldAnalyze] = useState(false);
 
-  // Separating the data fetching logic from the analysis logic to prevent refresh loops
   useEffect(() => {
-    const fetchReportData = async () => {
-      if (!id) return;
-      
+    if (!id) return;
+    
+    const fetchData = async () => {
       setLoading(true);
       try {
         const testData = await getBloodTestById(id);
@@ -42,11 +41,9 @@ const ReportPage = () => {
           const url = await getBloodTestFileUrl(testData.file_path);
           setFileUrl(url);
           
-          // Set extracted text if available
           if (testData.extracted_text) {
             setExtractedText(testData.extracted_text);
           } else {
-            // Simulate some extracted text if none exists
             setExtractedText(`
 Blood Test Results
 Date: ${new Date().toLocaleDateString()}
@@ -71,12 +68,11 @@ Triglycerides: ${Math.round(Math.random() * 50 + 100)} mg/dL (Reference Range: <
           }
         }
         
-        // Only load report if test is already processed
         if (testData?.processed) {
           const reportData = await getBloodTestReport(id);
           setReport(reportData);
+          setShouldAnalyze(true);
         } else if (testData && !testData.processed && !processingStarted) {
-          // Automatically start processing if not already processed
           handleProcessNow();
         }
       } catch (error) {
@@ -87,14 +83,43 @@ Triglycerides: ${Math.round(Math.random() * 50 + 100)} mg/dL (Reference Range: <
       }
     };
     
-    fetchReportData();
-  }, [id, processingStarted]); // Removed extractedText from dependencies
+    fetchData();
+  }, [id]);
 
-  // Separate effect for analysis to prevent refresh loops
   useEffect(() => {
+    if (!bloodTest || bloodTest.processed || !processingStarted || processingChecks >= 3) {
+      return;
+    }
+    
+    const checkProcessingTimer = setTimeout(() => {
+      setProcessingChecks(prev => prev + 1);
+      const checkProcessing = async () => {
+        if (!id) return;
+        try {
+          const updatedTest = await getBloodTestById(id);
+          if (updatedTest?.processed) {
+            setBloodTest(updatedTest);
+            const reportData = await getBloodTestReport(id);
+            setReport(reportData);
+            setShouldAnalyze(true);
+            setProcessingStarted(false);
+          } else if (processingChecks >= 2) {
+            window.location.reload();
+          }
+        } catch (error) {
+          console.error("Error checking processing status:", error);
+        }
+      };
+      checkProcessing();
+    }, 2000);
+    
+    return () => clearTimeout(checkProcessingTimer);
+  }, [bloodTest, processingStarted, processingChecks, id]);
+
+  useEffect(() => {
+    if (!shouldAnalyze || !report || analyzeLoading) return;
+    
     const performAnalysis = async () => {
-      if (!report || analyzeLoading) return;
-      
       setAnalyzeLoading(true);
       try {
         const analysisResult = await analyzeBloodTest({ 
@@ -103,6 +128,7 @@ Triglycerides: ${Math.round(Math.random() * 50 + 100)} mg/dL (Reference Range: <
         });
         setAnalysis(analysisResult.analysis);
         setRecommendations(analysisResult.recommendations);
+        setShouldAnalyze(false);
       } catch (error) {
         console.error("Error analyzing blood test:", error);
         toast.error("Could not generate analysis");
@@ -112,36 +138,7 @@ Triglycerides: ${Math.round(Math.random() * 50 + 100)} mg/dL (Reference Range: <
     };
     
     performAnalysis();
-  }, [report, extractedText]); // Only run when report or extractedText changes
-
-  // Auto-refresh the page if processing is in progress - with better controls to prevent infinite loops
-  useEffect(() => {
-    if (!bloodTest || bloodTest.processed || !processingStarted || processingChecks >= 3) {
-      return; // Early return to prevent unnecessary timer setup
-    }
-    
-    const timer = setTimeout(() => {
-      setProcessingChecks(prev => prev + 1);
-      // Refetch the blood test to check if it's processed
-      const checkProcessing = async () => {
-        if (!id) return;
-        try {
-          const updatedTest = await getBloodTestById(id);
-          if (updatedTest?.processed) {
-            window.location.reload();
-          } else if (processingChecks >= 2) {
-            // After 3 checks, force reload to see the latest status
-            window.location.reload();
-          }
-        } catch (error) {
-          console.error("Error checking processing status:", error);
-        }
-      };
-      checkProcessing();
-    }, 2000); // Check every 2 seconds
-    
-    return () => clearTimeout(timer);
-  }, [bloodTest, processingStarted, processingChecks, id]);
+  }, [report, extractedText, shouldAnalyze]);
 
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), 'MMM d, yyyy');
@@ -155,7 +152,7 @@ Triglycerides: ${Math.round(Math.random() * 50 + 100)} mg/dL (Reference Range: <
     }
   };
 
-  const handleProcessNow = async () => {
+  const handleProcessNow = useCallback(async () => {
     if (!id || processingStarted) return;
     
     setProcessingStarted(true);
@@ -163,13 +160,12 @@ Triglycerides: ${Math.round(Math.random() * 50 + 100)} mg/dL (Reference Range: <
     
     try {
       await processBloodTest(id);
-      // Processing will be checked by the useEffect
     } catch (error) {
       console.error("Error processing test:", error);
       toast.error("Failed to process test. Please try again.");
       setProcessingStarted(false);
     }
-  };
+  }, [id, processingStarted]);
 
   const renderLoadingState = () => (
     <div className="flex items-center justify-center h-64">
