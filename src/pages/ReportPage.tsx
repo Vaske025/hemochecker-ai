@@ -28,25 +28,26 @@ const ReportPage = () => {
   const [processingChecks, setProcessingChecks] = useState(0);
   const [extractedText, setExtractedText] = useState<string>("");
 
+  // Separating the data fetching logic from the analysis logic to prevent refresh loops
   useEffect(() => {
     const fetchReportData = async () => {
       if (!id) return;
       
       setLoading(true);
-      const testData = await getBloodTestById(id);
-      setBloodTest(testData);
-      
-      if (testData?.file_path) {
-        const url = await getBloodTestFileUrl(testData.file_path);
-        setFileUrl(url);
+      try {
+        const testData = await getBloodTestById(id);
+        setBloodTest(testData);
         
-        // In a real implementation, you would extract text from the PDF here
-        // For demo purposes, we'll simulate extracted text
-        if (testData.extracted_text) {
-          setExtractedText(testData.extracted_text);
-        } else {
-          // Simulate some extracted text if none exists
-          setExtractedText(`
+        if (testData?.file_path) {
+          const url = await getBloodTestFileUrl(testData.file_path);
+          setFileUrl(url);
+          
+          // Set extracted text if available
+          if (testData.extracted_text) {
+            setExtractedText(testData.extracted_text);
+          } else {
+            // Simulate some extracted text if none exists
+            setExtractedText(`
 Blood Test Results
 Date: ${new Date().toLocaleDateString()}
 Patient ID: 123456789
@@ -66,49 +67,65 @@ Total Cholesterol: ${Math.round(Math.random() * 50 + 170)} mg/dL (Reference Rang
 LDL Cholesterol: ${Math.round(Math.random() * 40 + 100)} mg/dL (Reference Range: <130 mg/dL)
 HDL Cholesterol: ${Math.round(Math.random() * 20 + 50)} mg/dL (Reference Range: >40 mg/dL for men, >50 mg/dL for women)
 Triglycerides: ${Math.round(Math.random() * 50 + 100)} mg/dL (Reference Range: <150 mg/dL)
-          `);
-        }
-      }
-      
-      if (testData?.processed) {
-        const reportData = await getBloodTestReport(id);
-        setReport(reportData);
-        
-        if (reportData) {
-          setAnalyzeLoading(true);
-          try {
-            const analysisResult = await analyzeBloodTest({ 
-              metrics: reportData.metrics,
-              rawContent: extractedText // Pass the extracted text to the analysis
-            });
-            setAnalysis(analysisResult.analysis);
-            setRecommendations(analysisResult.recommendations);
-          } catch (error) {
-            console.error("Error analyzing blood test:", error);
-            toast.error("Could not generate analysis");
-          } finally {
-            setAnalyzeLoading(false);
+            `);
           }
         }
-      } else if (testData && !testData.processed && !processingStarted) {
-        // Automatically start processing if not already processed
-        handleProcessNow();
+        
+        // Only load report if test is already processed
+        if (testData?.processed) {
+          const reportData = await getBloodTestReport(id);
+          setReport(reportData);
+        } else if (testData && !testData.processed && !processingStarted) {
+          // Automatically start processing if not already processed
+          handleProcessNow();
+        }
+      } catch (error) {
+        console.error("Error fetching report data:", error);
+        toast.error("Failed to load report");
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
     
     fetchReportData();
-  }, [id, processingStarted, extractedText]);
+  }, [id, processingStarted]); // Removed extractedText from dependencies
 
-  // Auto-refresh the page if processing is in progress
+  // Separate effect for analysis to prevent refresh loops
   useEffect(() => {
-    if (bloodTest && !bloodTest.processed && processingStarted && processingChecks < 3) {
-      const timer = setTimeout(() => {
-        setProcessingChecks(prev => prev + 1);
-        // Refetch the blood test to check if it's processed
-        const checkProcessing = async () => {
-          if (!id) return;
+    const performAnalysis = async () => {
+      if (!report || analyzeLoading) return;
+      
+      setAnalyzeLoading(true);
+      try {
+        const analysisResult = await analyzeBloodTest({ 
+          metrics: report.metrics,
+          rawContent: extractedText
+        });
+        setAnalysis(analysisResult.analysis);
+        setRecommendations(analysisResult.recommendations);
+      } catch (error) {
+        console.error("Error analyzing blood test:", error);
+        toast.error("Could not generate analysis");
+      } finally {
+        setAnalyzeLoading(false);
+      }
+    };
+    
+    performAnalysis();
+  }, [report, extractedText]); // Only run when report or extractedText changes
+
+  // Auto-refresh the page if processing is in progress - with better controls to prevent infinite loops
+  useEffect(() => {
+    if (!bloodTest || bloodTest.processed || !processingStarted || processingChecks >= 3) {
+      return; // Early return to prevent unnecessary timer setup
+    }
+    
+    const timer = setTimeout(() => {
+      setProcessingChecks(prev => prev + 1);
+      // Refetch the blood test to check if it's processed
+      const checkProcessing = async () => {
+        if (!id) return;
+        try {
           const updatedTest = await getBloodTestById(id);
           if (updatedTest?.processed) {
             window.location.reload();
@@ -116,12 +133,14 @@ Triglycerides: ${Math.round(Math.random() * 50 + 100)} mg/dL (Reference Range: <
             // After 3 checks, force reload to see the latest status
             window.location.reload();
           }
-        };
-        checkProcessing();
-      }, 2000); // Check every 2 seconds
-      
-      return () => clearTimeout(timer);
-    }
+        } catch (error) {
+          console.error("Error checking processing status:", error);
+        }
+      };
+      checkProcessing();
+    }, 2000); // Check every 2 seconds
+    
+    return () => clearTimeout(timer);
   }, [bloodTest, processingStarted, processingChecks, id]);
 
   const formatDate = (dateString: string) => {
