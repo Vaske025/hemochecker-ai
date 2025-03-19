@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -348,7 +349,7 @@ Based on the available data, I don't see this specific measurement in your curre
       } else if (relevantContent) {
         response = "🔍 **Analysis Based on Your Document**\n\n";
         response += "I found the following relevant information in your document:\n\n";
-        response += `"${relevantContent.trim()}"\n\n";
+        response += `"${relevantContent.trim()}"\n\n`;
         response += "For a more detailed analysis, I would need to see structured lab values with their reference ranges.";
       } else {
         response = "I don't have complete information about your blood test results. To provide a comprehensive assessment, I would need to see all relevant biomarkers and their values.";
@@ -561,9 +562,8 @@ Based on the available data, I don't see this specific measurement in your curre
         "low": "Precautions against infection if severely low, and investigation of potential causes."
       },
       "Testosterone": {
-        "elevated": "Elevated testosterone may be caused by certain endocrine disorders, tumors, or anabolic steroid use. In women, it can cause symptoms like excessive hair growth.",
-        "low": "Low testosterone in men may cause reduced libido, erectile dysfunction, fatigue, and muscle loss. In women, low levels may affect mood and energy.",
-        "normal": "Testosterone is a hormone that affects sexual development, muscle mass, and bone density. Normal levels indicate proper hormone balance."
+        "elevated": "For elevated testosterone, consult with an endocrinologist to determine the cause. Management depends on the underlying reason but may include medication to lower levels.",
+        "low": "For low testosterone, lifestyle changes like weight management, regular exercise, adequate sleep, and stress reduction may help. Medical treatments like testosterone replacement therapy might be considered in some cases."
       }
     };
     
@@ -819,4 +819,3 @@ Based on the available data, I don't see this specific measurement in your curre
     </div>
   );
 };
-
