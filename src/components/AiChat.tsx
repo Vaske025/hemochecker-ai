@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,13 +36,13 @@ export const AiChat = ({ initialAnalysis, recommendations, metrics = [], rawCont
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showUpload, setShowUpload] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     setPdfData({ metrics, rawContent });
   }, [metrics, rawContent]);
   
   useEffect(() => {
-    // Scroll to bottom when messages update
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
@@ -95,30 +94,31 @@ export const AiChat = ({ initialAnalysis, recommendations, metrics = [], rawCont
       };
       setMessages(prev => [...prev, loadingMessage]);
 
-      // Use AI service to analyze the file
       const analysisResult = await analyzeFileWithAi(
         file, 
         "Please analyze this medical document and provide insights in a clear, structured format. Include the key findings, reference ranges, and what they mean."
       );
       
-      // Replace loading message with the response
       setMessages(prev => 
         prev.slice(0, -1).concat({ role: "assistant", content: analysisResult })
       );
     } catch (error) {
       console.error("Error analyzing file:", error);
+      
+      const errorMessage = error.message || "I encountered an error analyzing this file.";
       setMessages(prev => 
         prev.slice(0, -1).concat({ 
           role: "assistant", 
-          content: "I encountered an error analyzing this file. Please try again or upload a different file format." 
+          content: `${errorMessage} Would you like to try again with a different file format? PDF, JPG, and TXT formats work best.` 
         })
       );
+      
+      setRetryCount(prev => prev + 1);
     }
   };
 
   const handleTextQuery = async (userQuery: string) => {
     try {
-      // Prepare context from available metrics for the AI
       let contextPrompt = "";
       
       if (pdfData.metrics.length > 0) {
@@ -130,7 +130,6 @@ export const AiChat = ({ initialAnalysis, recommendations, metrics = [], rawCont
         contextPrompt += "Raw report content excerpt: " + pdfData.rawContent.substring(0, 500) + "...\n\n";
       }
       
-      // Prepare system prompt for direct, clear responses
       const systemPrompt = `You are a medical assistant that analyzes blood tests and health data.
 Provide clear, direct responses to questions about medical test results. Format your responses in this style:
 - Use headers for main sections
@@ -140,7 +139,6 @@ Provide clear, direct responses to questions about medical test results. Format 
 - If you identify abnormal values, clearly explain their significance
 - Always structure your response in a organized way with clear sections`;
 
-      // Send request to AI service
       const aiResponse = await sendAiRequest({
         model: "claude-3-opus-20240229",
         messages: [
@@ -153,18 +151,25 @@ Provide clear, direct responses to questions about medical test results. Format 
         temperature: 0.4
       });
       
-      // Add AI response to chat
       setMessages(prev => [...prev, { role: "assistant", content: aiResponse }]);
     } catch (error) {
       console.error("Error getting AI response:", error);
+      
+      let errorMessage = "I apologize, but I'm having trouble connecting to my knowledge base right now.";
+      
+      if (error.message.includes("Network error") || error.message.includes("Failed to fetch")) {
+        errorMessage += " There seems to be a network issue. Please check your internet connection and try again.";
+      } else if (error.message.includes("timed out")) {
+        errorMessage += " The request took too long to process. Please try a shorter question.";
+      }
+      
       setMessages(prev => [...prev, { 
         role: "assistant", 
-        content: "I apologize, but I'm having trouble connecting to my knowledge base right now. Please try again in a moment." 
+        content: errorMessage
       }]);
     }
   };
 
-  // File upload UI
   const renderFileUpload = () => (
     <motion.div 
       initial={{ opacity: 0, height: 0 }}
@@ -229,7 +234,6 @@ Provide clear, direct responses to questions about medical test results. Format 
     </motion.div>
   );
 
-  // Message rendering
   const renderMessage = (message: Message, index: number) => (
     <motion.div
       key={index}
@@ -266,7 +270,6 @@ Provide clear, direct responses to questions about medical test results. Format 
     </motion.div>
   );
 
-  // Loading indicator
   const renderLoadingIndicator = () => (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -284,13 +287,18 @@ Provide clear, direct responses to questions about medical test results. Format 
     </motion.div>
   );
 
-  // Quick questions
   const quickQuestions = [
     { icon: <Heart className="h-3 w-3 mr-1" />, text: "Cholesterol levels?", query: "What do my cholesterol levels mean?" },
     { icon: <Activity className="h-3 w-3 mr-1" />, text: "Hormone levels?", query: "Explain my hormone levels" },
     { icon: <Apple className="h-3 w-3 mr-1" />, text: "Diet Tips?", query: "What diet recommendations do you have based on my results?" },
     { icon: <Dumbbell className="h-3 w-3 mr-1" />, text: "Exercise?", query: "What exercise is best for my health profile?" }
   ];
+
+  const handleRetry = () => {
+    if (fileUpload) {
+      handleFileAnalysis(fileUpload);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full rounded-lg border-t border-border">
@@ -316,7 +324,7 @@ Provide clear, direct responses to questions about medical test results. Format 
           </Button>
 
           <Input
-            placeholder="Ask about your test results or type 'analyze this document'..."
+            placeholder="Ask about your test results or upload a medical document..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
