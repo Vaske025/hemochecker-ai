@@ -35,13 +35,11 @@ export const AiChat = ({ initialAnalysis, recommendations, metrics = [], rawCont
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showUpload, setShowUpload] = useState(false);
 
-  // Update pdfData when metrics or rawContent change
   useEffect(() => {
     setPdfData({ metrics, rawContent });
   }, [metrics, rawContent]);
   
   const getMetricReferenceRange = (name: string): string => {
-    // Common reference ranges for blood tests (simplified for demonstration)
     const referenceRanges: Record<string, string> = {
       "Hemoglobin": "Men: 13.5-17.5 g/dL, Women: 12.0-15.5 g/dL",
       "Glucose": "Fasting: 70-100 mg/dL",
@@ -55,14 +53,12 @@ export const AiChat = ({ initialAnalysis, recommendations, metrics = [], rawCont
       "Red Blood Cells": "Men: 4.5-5.9 million cells/μL, Women: 4.1-5.1 million cells/μL"
     };
 
-    // Return the reference range if it exists, otherwise a generic message
     return referenceRanges[name] || "Reference range varies by lab and patient factors";
   };
 
   const findMetricInRawContent = (metricName: string): string | null => {
     if (!rawContent) return null;
     
-    // Create a regex pattern that looks for the metric name followed by numbers and possibly units
     const pattern = new RegExp(`${metricName}[:\\s]+(\\d+\\.?\\d*)\\s*([a-zA-Z/]+)?`, 'i');
     const match = rawContent.match(pattern);
     
@@ -89,14 +85,11 @@ export const AiChat = ({ initialAnalysis, recommendations, metrics = [], rawCont
     setIsLoading(true);
     
     try {
-      // If there's a file upload, handle it specially
       if (fileUpload) {
-        // Handle file analysis immediately
         await handleFileAnalysis(fileUpload);
         setFileUpload(null);
         setShowUpload(false);
       } else {
-        // For regular text queries, use the existing message handling
         await handleTextQuery(input);
       }
     } catch (error) {
@@ -112,21 +105,17 @@ export const AiChat = ({ initialAnalysis, recommendations, metrics = [], rawCont
   };
 
   const handleFileAnalysis = async (file: File) => {
-    // Add a loading message
     const loadingMessage = { 
       role: "assistant", 
       content: `Analyzing your file: ${file.name}. This may take a moment...` 
     };
     setMessages(prev => [...prev, loadingMessage]);
 
-    // Simulate file reading and analysis
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // Read the file content
     const fileContent = await readFileAsText(file);
     const fileType = file.type;
     
-    // Generate analysis based on file type and content
     let analysisResponse = ""; 
     
     if (fileType.includes("pdf") || fileType.includes("image")) {
@@ -137,7 +126,6 @@ export const AiChat = ({ initialAnalysis, recommendations, metrics = [], rawCont
       analysisResponse = "I'm unable to analyze this file type. Please upload a PDF lab report, image, CSV, or text file containing your lab results.";
     }
 
-    // Replace the loading message with the analysis result
     setMessages(prev => 
       prev.slice(0, -1).concat({ role: "assistant", content: analysisResponse })
     );
@@ -154,19 +142,16 @@ export const AiChat = ({ initialAnalysis, recommendations, metrics = [], rawCont
   };
 
   const analyzeLabReport = async (content: string, fileName: string): Promise<string> => {
-    // Detect if it's a testosterone or hormone test
     const isHormoneTest = content.toLowerCase().includes("testosterone") || 
                           content.toLowerCase().includes("estrogen") ||
                           content.toLowerCase().includes("hormone") ||
                           content.toLowerCase().includes("thyroid") ||
                           content.toLowerCase().includes("tsh");
 
-    // Detect test date if possible
     const dateMatch = content.match(/date:?\s*([a-z0-9\s,]+\d{4})/i);
     const testDate = dateMatch ? dateMatch[1].trim() : "recent";
 
     if (isHormoneTest) {
-      // Look for testosterone values
       const testosteroneMatch = content.match(/testosterone:?\s*(\d+\.?\d*)\s*([a-z/]+)?/i);
       let testValue = "not specified";
       let unit = "ng/dL";
@@ -205,7 +190,6 @@ Testosterone is a key hormone that affects muscle mass, bone density, fat distri
 
 Would you like me to explain any specific aspects of your hormone test in more detail?`;
     } else {
-      // Generic lab report analysis
       return `📋 **Lab Report Analysis (${fileName})**
 
 I've reviewed your ${testDate} lab report and found the following information:
@@ -229,7 +213,6 @@ Would you like me to focus on a particular aspect of your results?`;
   };
 
   const analyzeTextData = async (content: string, fileName: string): Promise<string> => {
-    // Check if content looks like CSV data with blood test markers
     const lines = content.split('\n');
     const potentialTestNames = [
       "testosterone", "estrogen", "glucose", "cholesterol", "ldl", "hdl", 
@@ -256,7 +239,6 @@ To get a complete analysis:
 
 I can provide more specific insights if you share what aspect of these results you're most interested in understanding.`;
     } else {
-      // Generic text analysis
       return `📝 **Text Document Analysis (${fileName})**
 
 I've reviewed the document you uploaded, but I'm not seeing clear blood test markers or medical data. 
@@ -271,23 +253,18 @@ I'm here to help interpret your health data, but need some guidance on what you'
   };
 
   const handleTextQuery = async (userQuestion: string) => {
-    // Simulate API response
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Generate a detailed response based on the message and available metrics
     let response = "";
     userQuestion = userQuestion.toLowerCase();
     
-    // Process the raw PDF content to extract relevant information
     let relevantContent = "";
     if (rawContent) {
-      // Try to find content relevant to the user's question in the raw PDF text
       const keywords = userQuestion.split(' ').filter(word => 
         word.length > 3 && !['what', 'when', 'where', 'which', 'about', 'tell', 'explain'].includes(word)
       );
       
       for (const keyword of keywords) {
-        // Create a basic regex to find paragraphs containing the keyword
         const pattern = new RegExp(`[^.]*${keyword}[^.]*\\.`, 'gi');
         const matches = rawContent.match(pattern);
         
@@ -310,7 +287,6 @@ I'm here to help interpret your health data, but need some guidance on what you'
       { terms: ["thyroid", "tsh", "t3", "t4"], metric: "Thyroid", emoji: "🦋" }
     ];
     
-    // Find if question matches any metric
     const matchedQuery = metricQueries.find(query => 
       query.terms.some(term => userQuestion.includes(term))
     );
@@ -320,13 +296,10 @@ I'm here to help interpret your health data, but need some guidance on what you'
       const emoji = matchedQuery.emoji;
       const matchedMetric = pdfData.metrics.find(m => m.name === metricName);
       
-      // Look for this metric in the raw content if we couldn't find it in structured data
-      const rawMetricValue = findMetricInRawContent(metricName);
-      
       if (matchedMetric) {
         response = `${emoji} **${metricName} Analysis**\n\n${generateDoctorResponse(matchedMetric, metricName)}`;
-      } else if (rawMetricValue) {
-        response = `${emoji} **About ${metricName}**\n\nI found a ${metricName} value of ${rawMetricValue} in your lab results. 
+      } else if (findMetricInRawContent(metricName)) {
+        response = `${emoji} **About ${metricName}**\n\nI found a ${metricName} value of ${findMetricInRawContent(metricName)} in your lab results. 
           
 The standard reference range is: ${getMetricReferenceRange(metricName)}
 
@@ -375,7 +348,7 @@ Based on the available data, I don't see this specific measurement in your curre
       } else if (relevantContent) {
         response = "🔍 **Analysis Based on Your Document**\n\n";
         response += "I found the following relevant information in your document:\n\n";
-        response += `"${relevantContent.trim()}"\n\n`;
+        response += `"${relevantContent.trim()}"\n\n";
         response += "For a more detailed analysis, I would need to see structured lab values with their reference ranges.";
       } else {
         response = "I don't have complete information about your blood test results. To provide a comprehensive assessment, I would need to see all relevant biomarkers and their values.";
@@ -447,7 +420,6 @@ Based on the available data, I don't see this specific measurement in your curre
     } else {
       response = "👨‍⚕️ **Medical Insight Based on Your Blood Work**\n\n";
         
-      // Check for any abnormal values
       const abnormalMetrics = pdfData.metrics?.filter(m => m.status !== "normal") || [];
       
       if (abnormalMetrics.length > 0) {
@@ -465,7 +437,6 @@ Based on the available data, I don't see this specific measurement in your curre
       response += "To give you a more specific answer about your question, could you provide more details about any particular symptoms or health concerns you're experiencing? This would help me contextualize your results more precisely.";
     }
     
-    // Small disclaimer at the bottom
     response += "\n\n*Note: This analysis is for informational purposes only and does not replace consultation with your healthcare provider.*";
     
     setMessages(prev => [...prev, { role: "assistant", content: response }]);
@@ -490,7 +461,6 @@ Based on the available data, I don't see this specific measurement in your curre
     
     response += `${getMetricExplanation(metricName, metric.status)}\n\n`;
     
-    // Add clinical interpretation
     if (metric.status !== "normal") {
       response += `📊 **Clinical interpretation:** ${getMetricStatus(metric.status, metricName)}\n\n`;
       response += `💡 **Recommendation:** ${getMetricRecommendation(metricName, metric.status)}`;
@@ -501,7 +471,6 @@ Based on the available data, I don't see this specific measurement in your curre
     return response;
   };
 
-  // Get status explanation from doctor's perspective
   const getMetricStatus = (status: string, name: string): string => {
     const statusExplanations: Record<string, Record<string, string>> = {
       "Hemoglobin": {
@@ -514,14 +483,14 @@ Based on the available data, I don't see this specific measurement in your curre
       },
       "Cholesterol": {
         "elevated": "Elevated total cholesterol increases cardiovascular risk and may require lifestyle modification or pharmacological intervention.",
-        "low": "Unusually low cholesterol may be associated with malnutrition, liver disease, or genetic conditions."
+        "low": "Very low cholesterol may be associated with malnutrition, liver disease, or genetic conditions."
       },
       "LDL": {
         "elevated": "Elevated LDL cholesterol is a primary risk factor for atherosclerosis and cardiovascular disease.",
         "low": "Low LDL is generally favorable from a cardiovascular perspective."
       },
       "HDL": {
-        "elevated": "Elevated HDL is considered cardioprotective.",
+        "elevated": "High HDL is considered cardioprotective.",
         "low": "Low HDL reduces the body's ability to remove excess cholesterol and is associated with increased cardiovascular risk."
       },
       "Triglycerides": {
@@ -539,14 +508,18 @@ Based on the available data, I don't see this specific measurement in your curre
       "White Blood Cells": {
         "elevated": "Elevated WBC count (leukocytosis) typically indicates infection, inflammation, or sometimes leukemia.",
         "low": "Low WBC count (leukopenia) suggests impaired immune function, possibly due to bone marrow suppression, certain medications, or viral infections."
+      },
+      "Testosterone": {
+        "elevated": "Elevated testosterone may be caused by certain endocrine disorders, tumors, or anabolic steroid use. In women, it can cause symptoms like excessive hair growth.",
+        "low": "Low testosterone in men may cause reduced libido, erectile dysfunction, fatigue, and muscle loss. In women, low levels may affect mood and energy.",
+        "normal": "Testosterone is a hormone that affects sexual development, muscle mass, and bone density. Normal levels indicate proper hormone balance."
       }
     };
     
     return statusExplanations[name]?.[status] || 
-      `This ${status} ${name} value requires clinical correlation with your symptoms and medical history.`;
+      `${name} is an important biomarker for health assessment. The clinical significance varies depending on your overall health picture and other test results.`;
   };
 
-  // Get recommendations for abnormal values
   const getMetricRecommendation = (name: string, status: string): string => {
     if (status === "normal") return "Continue with your current health practices.";
     
@@ -586,6 +559,11 @@ Based on the available data, I don't see this specific measurement in your curre
       "White Blood Cells": {
         "elevated": "Evaluation for infection or inflammation; usually resolves when underlying cause is addressed.",
         "low": "Precautions against infection if severely low, and investigation of potential causes."
+      },
+      "Testosterone": {
+        "elevated": "Elevated testosterone may be caused by certain endocrine disorders, tumors, or anabolic steroid use. In women, it can cause symptoms like excessive hair growth.",
+        "low": "Low testosterone in men may cause reduced libido, erectile dysfunction, fatigue, and muscle loss. In women, low levels may affect mood and energy.",
+        "normal": "Testosterone is a hormone that affects sexual development, muscle mass, and bone density. Normal levels indicate proper hormone balance."
       }
     };
     
@@ -593,7 +571,6 @@ Based on the available data, I don't see this specific measurement in your curre
       "Further evaluation is recommended to determine the cause and appropriate management strategy.";
   };
 
-  // Get explanation for metric
   const getMetricExplanation = (name: string, status: string): string => {
     const explanations: Record<string, Record<string, string>> = {
       "Hemoglobin": {
@@ -617,4 +594,229 @@ Based on the available data, I don't see this specific measurement in your curre
         "normal": "LDL cholesterol is often called 'bad' cholesterol because high levels can lead to plaque buildup in arteries."
       },
       "HDL": {
-        "elevated": "High HDL cholesterol is
+        "elevated": "High HDL cholesterol is considered cardioprotective and associated with lower cardiovascular risk. It helps remove excess cholesterol from your bloodstream.",
+        "low": "Low HDL cholesterol may increase risk of heart disease as it reduces the body's ability to remove excess cholesterol from the bloodstream.",
+        "normal": "HDL cholesterol is often called 'good' cholesterol because it helps remove other forms of cholesterol from your bloodstream."
+      },
+      "Triglycerides": {
+        "elevated": "Elevated triglycerides may be caused by obesity, excessive alcohol consumption, uncontrolled diabetes, or genetic factors. High levels increase risk of heart disease.",
+        "low": "Low triglyceride levels are generally not a medical concern and might indicate a diet low in fats or carbohydrates.",
+        "normal": "Triglycerides are a type of fat in your blood that your body uses for energy. Normal levels indicate balanced fat metabolism."
+      },
+      "Creatinine": {
+        "elevated": "Elevated creatinine may indicate reduced kidney function, potentially due to kidney disease, dehydration, or muscle damage.",
+        "low": "Low creatinine may be associated with decreased muscle mass, liver disease, or pregnancy.",
+        "normal": "Creatinine is a waste product from muscle metabolism that's filtered by your kidneys. Normal levels suggest proper kidney function."
+      },
+      "Platelets": {
+        "elevated": "Elevated platelets may be due to inflammation, infection, iron deficiency, or certain blood disorders. It can increase risk of blood clots.",
+        "low": "Low platelets may increase bleeding risk and can be caused by autoimmune disorders, medication side effects, or bone marrow problems.",
+        "normal": "Platelets are blood cells that help your blood clot. Normal levels indicate good clot-forming ability without excess risk."
+      },
+      "White Blood Cells": {
+        "elevated": "Elevated white blood cells typically indicate your body is fighting an infection, inflammation, or potentially certain types of leukemia.",
+        "low": "Low white blood cells may increase infection risk and can be caused by certain medications, autoimmune disorders, or bone marrow issues.",
+        "normal": "White blood cells are part of your immune system that fight infection. Normal levels suggest good immune function."
+      },
+      "Testosterone": {
+        "elevated": "Elevated testosterone may be caused by certain endocrine disorders, tumors, or anabolic steroid use. In women, it can cause symptoms like excessive hair growth.",
+        "low": "Low testosterone in men may cause reduced libido, erectile dysfunction, fatigue, and muscle loss. In women, low levels may affect mood and energy.",
+        "normal": "Testosterone is a hormone that affects sexual development, muscle mass, and bone density. Normal levels indicate proper hormone balance."
+      }
+    };
+    
+    return explanations[name]?.[status] || 
+      `${name} is an important biomarker for health assessment. The clinical significance varies depending on your overall health picture and other test results.`;
+  };
+
+  return (
+    <div className="flex flex-col h-full rounded-lg border-t border-border">
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="space-y-4">
+          {messages.map((message, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 * (index % 3) }}
+              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+            >
+              <div 
+                className={`flex items-start space-x-2 max-w-[80%] ${
+                  message.role === "user" 
+                    ? "bg-primary text-primary-foreground" 
+                    : "bg-muted"
+                } p-3 rounded-lg`}
+              >
+                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                  {message.role === "user" ? (
+                    <User className="h-5 w-5" />
+                  ) : (
+                    <Bot className="h-5 w-5" />
+                  )}
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <div className="whitespace-pre-line text-sm">
+                    {message.file && (
+                      <div className="text-xs font-medium mb-1 opacity-80">
+                        📎 {message.file}
+                      </div>
+                    )}
+                    {message.content}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+          {isLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex justify-start"
+            >
+              <div className="bg-muted p-3 rounded-lg flex items-center space-x-2">
+                <Bot className="h-5 w-5" />
+                <div className="flex space-x-1">
+                  <span className="animate-bounce">●</span>
+                  <span className="animate-bounce" style={{ animationDelay: "0.2s" }}>●</span>
+                  <span className="animate-bounce" style={{ animationDelay: "0.4s" }}>●</span>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </div>
+      </div>
+
+      <div className="border-t p-4 bg-background/50">
+        {showUpload && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-4"
+          >
+            <Alert className="bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800">
+              <AlertDescription className="flex flex-col gap-3">
+                <p className="text-sm">
+                  Upload a blood test or lab report file. The AI assistant will analyze it and provide insights based on the data.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <input 
+                    type="file" 
+                    ref={fileInputRef}
+                    className="hidden" 
+                    accept=".pdf,.jpg,.jpeg,.png,.txt,.csv,.json"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setFileUpload(e.target.files[0]);
+                      }
+                    }}
+                  />
+                  
+                  <Button 
+                    variant="outline" 
+                    className="bg-white dark:bg-blue-900/50"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {fileUpload ? fileUpload.name : "Select file"}
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="bg-white dark:bg-blue-900/50"
+                    onClick={() => setShowUpload(false)}
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Cancel
+                  </Button>
+                </div>
+                
+                {fileUpload && (
+                  <Card className="p-2 bg-white dark:bg-gray-800 text-xs flex items-center justify-between">
+                    <span className="truncate">{fileUpload.name}</span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 w-6 p-0" 
+                      onClick={() => setFileUpload(null)}
+                    >
+                      <XCircle className="h-4 w-4" />
+                    </Button>
+                  </Card>
+                )}
+              </AlertDescription>
+            </Alert>
+          </motion.div>
+        )}
+        
+        <div className="flex space-x-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setShowUpload(!showUpload)}
+            className={showUpload ? "text-primary" : ""}
+          >
+            <Upload className="h-4 w-4" />
+          </Button>
+
+          <Input
+            placeholder="Ask about your blood test results..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage();
+              }
+            }}
+            disabled={isLoading}
+          />
+
+          <Button disabled={isLoading || (!input.trim() && !fileUpload)} onClick={handleSendMessage}>
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-4 gap-2 mt-3">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-xs bg-muted/50" 
+            onClick={() => setInput("What do my triglyceride levels mean?")}
+          >
+            <Heart className="h-3 w-3 mr-1" />
+            Lipids?
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-xs bg-muted/50" 
+            onClick={() => setInput("Tell me about my testosterone levels")}
+          >
+            <Activity className="h-3 w-3 mr-1" />
+            Hormones?
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-xs bg-muted/50" 
+            onClick={() => setInput("What diet recommendations do you have?")}
+          >
+            <Apple className="h-3 w-3 mr-1" />
+            Diet Tips?
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-xs bg-muted/50" 
+            onClick={() => setInput("Exercise recommendations for my results?")}
+          >
+            <Dumbbell className="h-3 w-3 mr-1" />
+            Exercise?
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
